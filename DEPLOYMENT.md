@@ -28,7 +28,7 @@ This document provides a step-by-step checklist for deploying Common to producti
 
 ### 4. Environment Variables
 
-Prepare these values:
+Reference `env.example` for the complete list. Prepare these values:
 
 - [ ] `AWS_REGION` - Your DynamoDB region
 - [ ] `COMMON_TABLE_NAME` - Your table name

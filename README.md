@@ -65,8 +65,13 @@ npm install
 
 3. **Set up environment variables**
 
-Create a `.env.local` file in the root directory:
+Copy `env.example` to `.env.local` and update the values:
 
+```bash
+cp env.example .env.local
+```
+
+Required variables:
 ```env
 AWS_REGION=us-east-1
 COMMON_TABLE_NAME=Common

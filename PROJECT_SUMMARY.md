@@ -185,7 +185,7 @@ These are intentionally omitted to keep Common simple, calm, and privacy-focused
 
 1. **Install dependencies**: `npm install`
 2. **Create DynamoDB table**: `./scripts/create-dynamodb-table.sh`
-3. **Configure environment**: Copy `.env.example` to `.env.local` and fill in values
+3. **Configure environment**: Copy `env.example` to `.env.local` and fill in values
 4. **Run locally**: `npm run dev`
 5. **Deploy to Amplify**: Follow `DEPLOYMENT.md`
 
