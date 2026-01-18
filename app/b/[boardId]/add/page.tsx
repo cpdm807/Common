@@ -14,6 +14,7 @@ export default function AddAvailabilityPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [editingContributionId, setEditingContributionId] = useState<string | null>(null);
 
   const [name, setName] = useState("");
   const [selectedSlots, setSelectedSlots] = useState<Set<number>>(new Set());
@@ -23,6 +24,10 @@ export default function AddAvailabilityPage() {
   useEffect(() => {
     if (!boardId) return;
 
+    // Check if we're editing
+    const urlParams = new URLSearchParams(window.location.search);
+    const editId = urlParams.get('edit');
+    
     fetch(`/api/boards/${boardId}`)
       .then((res) => {
         if (!res.ok) throw new Error("Board not found");
@@ -30,11 +35,27 @@ export default function AddAvailabilityPage() {
       })
       .then((data) => {
         setBoard(data);
+        
+        // If editing, prefill data
+        if (editId && data.computed.contributors) {
+          const contributor = data.computed.contributors.find(
+            (c: any) => c.contributionId === editId
+          );
+          
+          if (contributor) {
+            setEditingContributionId(editId);
+            setName(contributor.name || "");
+            if (contributor.selectedSlots) {
+              setSelectedSlots(new Set(contributor.selectedSlots));
+            }
+          }
+        } else {
+          // Set default name for new contribution
+          const defaultName = `Person ${data.computed.contributorsCount + 1}`;
+          setName(defaultName);
+        }
+        
         setLoading(false);
-
-        // Set default name
-        const defaultName = `Person ${data.computed.contributorsCount + 1}`;
-        setName(defaultName);
       })
       .catch((err) => {
         setError(err.message);
@@ -119,8 +140,14 @@ export default function AddAvailabilityPage() {
     setError(null);
 
     try {
-      const response = await fetch(`/api/boards/${boardId}/contributions`, {
-        method: "POST",
+      const url = editingContributionId
+        ? `/api/boards/${boardId}/contributions/${editingContributionId}`
+        : `/api/boards/${boardId}/contributions`;
+      
+      const method = editingContributionId ? "PUT" : "POST";
+      
+      const response = await fetch(url, {
+        method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name: name || undefined,
@@ -191,7 +218,7 @@ export default function AddAvailabilityPage() {
         </Link>
 
         <h1 className="text-2xl md:text-3xl font-bold mb-2">
-          Add your availability
+          {editingContributionId ? "Edit your availability" : "Add your availability"}
         </h1>
         <p className="text-gray-600 dark:text-gray-400 mb-8">
           {board.title || "Availability"}

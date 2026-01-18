@@ -8,6 +8,7 @@ interface Tool {
   description: string;
   href: string;
   available: boolean;
+  icon: string;
 }
 
 const tools: Tool[] = [
@@ -17,6 +18,7 @@ const tools: Tool[] = [
     description: "Find the best time to meet",
     href: "/tools/availability/create",
     available: true,
+    icon: "📅",
   },
   {
     id: "readiness",
@@ -24,6 +26,7 @@ const tools: Tool[] = [
     description: "Check team readiness",
     href: "#",
     available: false,
+    icon: "✅",
   },
   {
     id: "blockers",
@@ -31,6 +34,7 @@ const tools: Tool[] = [
     description: "Identify what's blocking progress",
     href: "#",
     available: false,
+    icon: "🚧",
   },
   {
     id: "opinions",
@@ -38,6 +42,7 @@ const tools: Tool[] = [
     description: "Gather team opinions",
     href: "#",
     available: false,
+    icon: "💭",
   },
 ];
 
@@ -74,6 +79,7 @@ export default function HomePage() {
                       href={tool.href}
                       className="block p-6 border-2 border-gray-200 dark:border-gray-800 rounded-lg hover:border-blue-500 dark:hover:border-blue-500 transition-colors h-full"
                     >
+                      <div className="text-4xl mb-3">{tool.icon}</div>
                       <h3 className="text-xl font-semibold mb-2">{tool.name}</h3>
                       <p className="text-gray-600 dark:text-gray-400">
                         {tool.description}
@@ -81,6 +87,7 @@ export default function HomePage() {
                     </Link>
                   ) : (
                     <div className="p-6 border-2 border-gray-200 dark:border-gray-800 rounded-lg opacity-50 h-full">
+                      <div className="text-4xl mb-3">{tool.icon}</div>
                       <h3 className="text-xl font-semibold mb-2">{tool.name}</h3>
                       <p className="text-gray-600 dark:text-gray-400 mb-2">
                         {tool.description}

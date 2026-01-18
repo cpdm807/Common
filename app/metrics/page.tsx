@@ -4,13 +4,22 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 
 interface MetricsData {
-  totalBoards: number;
-  totalContributions: number;
-  totalViews: number;
-  positiveFeedback: number;
-  negativeFeedback: number;
+  totals: {
+    totalBoards: number;
+    totalContributions: number;
+    totalViews: number;
+    positiveFeedback: number;
+    negativeFeedback: number;
+  };
+  byTool: Array<{
+    toolType: string;
+    boardsCreated: number;
+    totalContributions: number;
+    totalViews: number;
+  }>;
   recentBoards: Array<{
     boardId: string;
+    toolType?: string;
     title?: string;
     createdAt: string;
     contributions: number;
@@ -21,6 +30,8 @@ interface MetricsData {
     comment?: string;
     createdAt: string;
     boardId?: string;
+    toolType?: string;
+    context?: string;
   }>;
 }
 
@@ -30,20 +41,19 @@ export default function MetricsPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // In a real implementation, this would fetch from an API endpoint
-    // For now, showing placeholder data
-    setTimeout(() => {
-      setMetrics({
-        totalBoards: 0,
-        totalContributions: 0,
-        totalViews: 0,
-        positiveFeedback: 0,
-        negativeFeedback: 0,
-        recentBoards: [],
-        recentFeedback: [],
+    fetch("/api/metrics")
+      .then((res) => {
+        if (!res.ok) throw new Error("Failed to fetch metrics");
+        return res.json();
+      })
+      .then((data) => {
+        setMetrics(data);
+        setLoading(false);
+      })
+      .catch((err) => {
+        setError(err.message);
+        setLoading(false);
       });
-      setLoading(false);
-    }, 500);
   }, []);
 
   if (loading) {
@@ -84,29 +94,65 @@ export default function MetricsPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-12">
           <StatCard
             title="Total Boards"
-            value={metrics.totalBoards}
+            value={metrics.totals.totalBoards}
             icon="📊"
           />
           <StatCard
             title="Total Contributions"
-            value={metrics.totalContributions}
+            value={metrics.totals.totalContributions}
             icon="✏️"
           />
           <StatCard
             title="Total Views"
-            value={metrics.totalViews}
+            value={metrics.totals.totalViews}
             icon="👀"
           />
           <StatCard
             title="Positive Feedback"
-            value={metrics.positiveFeedback}
+            value={metrics.totals.positiveFeedback}
             icon="👍"
           />
           <StatCard
             title="Negative Feedback"
-            value={metrics.negativeFeedback}
+            value={metrics.totals.negativeFeedback}
             icon="👎"
           />
+        </div>
+
+        {/* By Tool Metrics */}
+        <div className="mb-12">
+          <h2 className="text-xl font-semibold mb-4">Metrics by Tool</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {metrics.byTool.map((tool) => (
+              <div
+                key={tool.toolType}
+                className="p-6 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg"
+              >
+                <h3 className="font-semibold text-lg mb-3 capitalize">
+                  {tool.toolType}
+                </h3>
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-gray-600 dark:text-gray-400">Boards:</span>
+                    <span className="font-medium">{tool.boardsCreated}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600 dark:text-gray-400">Contributions:</span>
+                    <span className="font-medium">{tool.totalContributions}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600 dark:text-gray-400">Views:</span>
+                    <span className="font-medium">{tool.totalViews}</span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+          {metrics.byTool.length === 0 && (
+            <div className="p-6 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg text-center text-gray-600 dark:text-gray-400">
+              No tool usage data yet
+            </div>
+          )}
         </div>
 
         {/* Recent Boards */}
@@ -132,7 +178,8 @@ export default function MetricsPage() {
                         {board.title || "Untitled Board"}
                       </Link>
                       <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                        Created {new Date(board.createdAt).toLocaleDateString()}
+                        <span className="capitalize">{board.toolType}</span> • Created{" "}
+                        {new Date(board.createdAt).toLocaleDateString()}
                       </div>
                     </div>
                     <div className="text-right text-sm">
@@ -191,13 +238,11 @@ export default function MetricsPage() {
           )}
         </div>
 
-        {/* Implementation Note */}
-        <div className="mt-12 p-6 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
-          <p className="text-sm text-yellow-800 dark:text-yellow-400">
-            <strong>Note:</strong> This metrics page is a placeholder. To populate
-            it with real data, you'll need to implement a metrics aggregation API endpoint
-            that queries DynamoDB for boards and feedback. Consider implementing this
-            with server-side rendering or an API route to keep metrics private.
+        {/* Note */}
+        <div className="mt-12 p-6 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+          <p className="text-sm text-blue-800 dark:text-blue-400">
+            <strong>Note:</strong> This page is not linked in the main navigation.
+            Access it directly at /metrics when needed.
           </p>
         </div>
       </div>

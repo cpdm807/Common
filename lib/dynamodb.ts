@@ -154,9 +154,43 @@ export async function getBoardContributions(
 
   return result.Items.map((item) => {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { PK, SK, ...contribution } = item;
-    return contribution as Contribution;
+    const { PK, ...contribution } = item;
+    // Keep SK for updates
+    return contribution as Contribution & { SK?: string };
   });
+}
+
+export async function updateContribution(
+  boardId: string,
+  contributionId: string,
+  name: string | undefined,
+  payload: any
+): Promise<void> {
+  // First, find the contribution to get its SK
+  const contributions = await getBoardContributions(boardId);
+  const contribution = contributions.find((c) => c.contributionId === contributionId);
+  
+  if (!contribution || !(contribution as any).SK) {
+    throw new Error("Contribution not found");
+  }
+
+  await docClient.send(
+    new UpdateCommand({
+      TableName: TABLE_NAME,
+      Key: {
+        PK: `BOARD#${boardId}`,
+        SK: (contribution as any).SK,
+      },
+      UpdateExpression: "SET #name = :name, payload = :payload",
+      ExpressionAttributeNames: {
+        "#name": "name",
+      },
+      ExpressionAttributeValues: {
+        ":name": name,
+        ":payload": payload,
+      },
+    })
+  );
 }
 
 // Feedback operations
