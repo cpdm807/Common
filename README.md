@@ -80,34 +80,42 @@ NEXT_PUBLIC_VENMO_URL=https://venmo.com/u/yourhandle
 NEXT_PUBLIC_VENMO_HANDLE=@yourhandle
 ```
 
-4. **Create DynamoDB table**
+4. **Set up database**
 
-Create a table named `Common` (or match `COMMON_TABLE_NAME`) with:
+**Option A: DynamoDB Local (Recommended for development)**
+
+Start DynamoDB Local with Docker:
+
+```bash
+docker-compose up -d
+```
+
+Then create the table:
+
+```bash
+chmod +x scripts/setup-local-db.sh
+./scripts/setup-local-db.sh
+```
+
+Add to your `.env.local`:
+```env
+DYNAMODB_ENDPOINT=http://localhost:8000
+```
+
+**Option B: AWS DynamoDB (Production)**
+
+Create a table in AWS with:
 
 - **Partition key (PK)**: String
 - **Sort key (SK)**: String
 - **TTL attribute**: `TTL` (Number, epoch seconds)
 
-AWS CLI example:
-
 ```bash
-aws dynamodb create-table \
-  --table-name Common \
-  --attribute-definitions \
-    AttributeName=PK,AttributeType=S \
-    AttributeName=SK,AttributeType=S \
-  --key-schema \
-    AttributeName=PK,KeyType=HASH \
-    AttributeName=SK,KeyType=RANGE \
-  --billing-mode PAY_PER_REQUEST \
-  --region us-east-1
-
-# Enable TTL
-aws dynamodb update-time-to-live \
-  --table-name Common \
-  --time-to-live-specification Enabled=true,AttributeName=TTL \
-  --region us-east-1
+chmod +x scripts/create-dynamodb-table.sh
+./scripts/create-dynamodb-table.sh Common us-east-1
 ```
+
+Make sure your AWS credentials are configured.
 
 5. **Run the development server**
 
@@ -116,6 +124,13 @@ npm run dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) in your browser.
+
+### Troubleshooting
+
+**"ResourceNotFoundException" error:**
+- Make sure DynamoDB Local is running: `docker-compose up -d`
+- Or ensure your AWS table exists and credentials are configured
+- Check that `COMMON_TABLE_NAME` in `.env.local` matches your table name
 
 ### Building for Production
 

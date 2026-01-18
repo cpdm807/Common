@@ -1,31 +1,99 @@
-// Landing page
+// Landing page with integrated tool selection
 
 import Link from "next/link";
+
+interface Tool {
+  id: string;
+  name: string;
+  description: string;
+  href: string;
+  available: boolean;
+}
+
+const tools: Tool[] = [
+  {
+    id: "availability",
+    name: "Availability Heatmap",
+    description: "Find the best time to meet",
+    href: "/tools/availability/create",
+    available: true,
+  },
+  {
+    id: "readiness",
+    name: "Readiness",
+    description: "Check team readiness",
+    href: "#",
+    available: false,
+  },
+  {
+    id: "blockers",
+    name: "Blockers",
+    description: "Identify what's blocking progress",
+    href: "#",
+    available: false,
+  },
+  {
+    id: "opinions",
+    name: "Opinions",
+    description: "Gather team opinions",
+    href: "#",
+    available: false,
+  },
+];
 
 export default function HomePage() {
   return (
     <div className="min-h-screen flex flex-col">
       {/* Main content */}
-      <main className="flex-1 flex items-center justify-center px-4 py-12">
-        <div className="max-w-2xl w-full text-center">
-          <h1 className="text-4xl md:text-5xl font-bold mb-6 text-balance">
-            When things get messy, find what&rsquo;s common.
-          </h1>
-          
-          <p className="text-xl md:text-2xl mb-4 text-gray-600 dark:text-gray-400">
-            Make the common ground visible.
-          </p>
-          
-          <p className="text-base md:text-lg mb-12 text-gray-500 dark:text-gray-500">
-            Lightweight tools to help groups align without meetings, accounts, or noise.
-          </p>
-          
-          <Link
-            href="/tools"
-            className="inline-block bg-blue-600 hover:bg-blue-700 text-white font-semibold px-8 py-4 rounded-lg text-lg transition-colors"
-          >
-            Get started
-          </Link>
+      <main className="flex-1 px-4 py-12">
+        <div className="max-w-4xl mx-auto">
+          {/* Hero section */}
+          <div className="text-center mb-16">
+            <h1 className="text-4xl md:text-5xl font-bold mb-6 text-balance">
+              When things get messy, find what&rsquo;s common.
+            </h1>
+            
+            <p className="text-xl md:text-2xl mb-4 text-gray-600 dark:text-gray-400">
+              Make the common ground visible.
+            </p>
+            
+            <p className="text-base md:text-lg mb-8 text-gray-500 dark:text-gray-500">
+              Lightweight tools to help groups align without meetings, accounts, or noise.
+            </p>
+          </div>
+
+          {/* Tool selection */}
+          <div>
+            <h2 className="text-2xl font-semibold mb-6 text-center">Choose a tool</h2>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+              {tools.map((tool) => (
+                <div key={tool.id}>
+                  {tool.available ? (
+                    <Link
+                      href={tool.href}
+                      className="block p-6 border-2 border-gray-200 dark:border-gray-800 rounded-lg hover:border-blue-500 dark:hover:border-blue-500 transition-colors h-full"
+                    >
+                      <h3 className="text-xl font-semibold mb-2">{tool.name}</h3>
+                      <p className="text-gray-600 dark:text-gray-400">
+                        {tool.description}
+                      </p>
+                    </Link>
+                  ) : (
+                    <div className="p-6 border-2 border-gray-200 dark:border-gray-800 rounded-lg opacity-50 h-full">
+                      <h3 className="text-xl font-semibold mb-2">{tool.name}</h3>
+                      <p className="text-gray-600 dark:text-gray-400 mb-2">
+                        {tool.description}
+                      </p>
+                      <span className="text-sm text-gray-500 dark:text-gray-500 font-medium">
+                        Coming soon
+                      </span>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       </main>
 

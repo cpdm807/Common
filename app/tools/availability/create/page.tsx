@@ -1,16 +1,30 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { commonTimezones, detectUserTimezone } from "@/lib/timezones";
+
+// Generate hour options for dropdown
+const generateHourOptions = () => {
+  const options = [];
+  for (let hour = 0; hour < 24; hour++) {
+    const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
+    const period = hour < 12 ? "AM" : "PM";
+    options.push({
+      value: hour,
+      label: `${displayHour}:00 ${period}`,
+    });
+  }
+  return options;
+};
+
+const hourOptions = generateHourOptions();
 
 export default function CreateAvailabilityPage() {
   const router = useRouter();
   const [isCreating, setIsCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  // Get user's timezone
-  const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
   // Calculate default date range (next 7 days starting today)
   const today = new Date();
@@ -18,13 +32,19 @@ export default function CreateAvailabilityPage() {
 
   const [formData, setFormData] = useState({
     title: "",
-    tz: userTimezone,
+    tz: "",
     startDate: formattedToday,
     days: 7,
     dayStart: 8,
     dayEnd: 20,
     slotMinutes: 30,
   });
+
+  // Detect user's timezone on mount
+  useEffect(() => {
+    const userTz = detectUserTimezone();
+    setFormData((prev) => ({ ...prev, tz: userTz }));
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -66,10 +86,10 @@ export default function CreateAvailabilityPage() {
     <div className="min-h-screen px-4 py-12">
       <div className="max-w-2xl mx-auto">
         <Link
-          href="/tools"
+          href="/"
           className="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 mb-4 inline-block"
         >
-          ← Back to tools
+          ← Back to home
         </Link>
 
         <h1 className="text-3xl md:text-4xl font-bold mb-2">
@@ -109,18 +129,21 @@ export default function CreateAvailabilityPage() {
             >
               Timezone
             </label>
-            <input
-              type="text"
+            <select
               id="tz"
               value={formData.tz}
               onChange={(e) =>
                 setFormData({ ...formData, tz: e.target.value })
               }
+              required
               className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-            <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
-              IANA timezone (e.g., America/New_York)
-            </p>
+            >
+              {commonTimezones.map((tz) => (
+                <option key={tz.value} value={tz.value}>
+                  {tz.label}
+                </option>
+              ))}
+            </select>
           </div>
 
           {/* Date range */}
@@ -173,10 +196,9 @@ export default function CreateAvailabilityPage() {
                 htmlFor="dayStart"
                 className="block text-sm font-medium mb-2"
               >
-                Day start (hour)
+                Day starts at
               </label>
-              <input
-                type="number"
+              <select
                 id="dayStart"
                 value={formData.dayStart}
                 onChange={(e) =>
@@ -185,11 +207,15 @@ export default function CreateAvailabilityPage() {
                     dayStart: parseInt(e.target.value),
                   })
                 }
-                min={0}
-                max={23}
                 required
                 className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
+              >
+                {hourOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
             </div>
 
             <div>
@@ -197,20 +223,25 @@ export default function CreateAvailabilityPage() {
                 htmlFor="dayEnd"
                 className="block text-sm font-medium mb-2"
               >
-                Day end (hour)
+                Day ends at
               </label>
-              <input
-                type="number"
+              <select
                 id="dayEnd"
                 value={formData.dayEnd}
                 onChange={(e) =>
                   setFormData({ ...formData, dayEnd: parseInt(e.target.value) })
                 }
-                min={1}
-                max={24}
                 required
                 className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
+              >
+                {hourOptions
+                  .filter((option) => option.value > formData.dayStart)
+                  .map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+              </select>
             </div>
           </div>
 

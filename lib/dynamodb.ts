@@ -10,9 +10,21 @@ import {
 } from "@aws-sdk/lib-dynamodb";
 import type { Board, Contribution, Feedback } from "./types";
 
-const client = new DynamoDBClient({
+// Configure DynamoDB client
+// For local development, set DYNAMODB_ENDPOINT to http://localhost:8000
+const clientConfig: any = {
   region: process.env.AWS_REGION || "us-east-1",
-});
+};
+
+if (process.env.DYNAMODB_ENDPOINT) {
+  clientConfig.endpoint = process.env.DYNAMODB_ENDPOINT;
+  clientConfig.credentials = {
+    accessKeyId: "local",
+    secretAccessKey: "local",
+  };
+}
+
+const client = new DynamoDBClient(clientConfig);
 
 const docClient = DynamoDBDocumentClient.from(client);
 
