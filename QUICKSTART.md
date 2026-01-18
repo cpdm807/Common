@@ -24,9 +24,9 @@ cp env.example .env.local
 
 Edit `.env.local` and add:
 ```env
+DYNAMODB_REGION=us-east-1
 DYNAMODB_ENDPOINT=http://localhost:8000
 COMMON_TABLE_NAME=Common
-AWS_REGION=us-east-1
 NEXT_PUBLIC_BASE_URL=http://localhost:3000
 ```
 

@@ -13,7 +13,7 @@ import type { Board, Contribution, Feedback } from "./types";
 // Configure DynamoDB client
 // For local development, set DYNAMODB_ENDPOINT to http://localhost:8000
 const clientConfig: any = {
-  region: process.env.AWS_REGION || "us-east-1",
+  region: process.env.DYNAMODB_REGION || process.env.AWS_REGION || "us-east-1",
 };
 
 if (process.env.DYNAMODB_ENDPOINT) {

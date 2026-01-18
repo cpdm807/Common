@@ -30,11 +30,13 @@ This document provides a step-by-step checklist for deploying Common to producti
 
 Reference `env.example` for the complete list. Prepare these values:
 
-- [ ] `AWS_REGION` - Your DynamoDB region
+- [ ] `DYNAMODB_REGION` - Your DynamoDB region (e.g., us-east-1)
 - [ ] `COMMON_TABLE_NAME` - Your table name
 - [ ] `NEXT_PUBLIC_BASE_URL` - Your production URL
 - [ ] `NEXT_PUBLIC_VENMO_URL` - Your Venmo profile (optional)
 - [ ] `NEXT_PUBLIC_VENMO_HANDLE` - Your Venmo handle (optional)
+
+**Important:** Use `DYNAMODB_REGION` not `AWS_REGION` - AWS Amplify reserves the `AWS_` prefix.
 
 ## Deployment via AWS Amplify Console
 

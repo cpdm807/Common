@@ -145,13 +145,16 @@ The architecture supports future tools:
 ## Environment Variables
 
 Required:
-- `AWS_REGION` - DynamoDB region
+- `DYNAMODB_REGION` - DynamoDB region (use this instead of AWS_REGION for Amplify)
 - `COMMON_TABLE_NAME` - DynamoDB table name
 - `NEXT_PUBLIC_BASE_URL` - Production URL
 
 Optional:
 - `NEXT_PUBLIC_VENMO_URL` - Venmo profile link
 - `NEXT_PUBLIC_VENMO_HANDLE` - Venmo handle for copying
+- `DYNAMODB_ENDPOINT` - For local development only (http://localhost:8000)
+
+**Note:** AWS Amplify reserves environment variables starting with `AWS_`, so we use `DYNAMODB_REGION` instead of `AWS_REGION`.
 
 ## Deployment Ready
 

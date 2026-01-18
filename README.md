@@ -73,12 +73,14 @@ cp env.example .env.local
 
 Required variables:
 ```env
-AWS_REGION=us-east-1
+DYNAMODB_REGION=us-east-1
 COMMON_TABLE_NAME=Common
 NEXT_PUBLIC_BASE_URL=http://localhost:3000
 NEXT_PUBLIC_VENMO_URL=https://venmo.com/u/yourhandle
 NEXT_PUBLIC_VENMO_HANDLE=@yourhandle
 ```
+
+**Note:** Use `DYNAMODB_REGION` instead of `AWS_REGION` to avoid conflicts with AWS Amplify's reserved prefixes.
 
 4. **Set up database**
 
@@ -99,6 +101,7 @@ chmod +x scripts/setup-local-db.sh
 
 Add to your `.env.local`:
 ```env
+DYNAMODB_REGION=us-east-1
 DYNAMODB_ENDPOINT=http://localhost:8000
 ```
 
