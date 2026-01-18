@@ -364,72 +364,73 @@ function Heatmap({
   };
 
   return (
-    <div className="overflow-x-auto">
-      <div className="inline-block min-w-full">
-        <div className="grid gap-1" style={{ gridTemplateColumns: `auto repeat(${days}, minmax(60px, 1fr))` }}>
-          {/* Header row */}
-          <div className="h-12" />
-          {Array.from({ length: days }).map((_, dayIdx) => (
-            <div
-              key={dayIdx}
-              className="text-xs font-medium text-center py-2 sticky top-0 bg-white dark:bg-black z-10"
-            >
-              {getDayLabel(dayIdx, settings)}
-            </div>
-          ))}
-
-          {/* Time rows */}
-          {timeLabels.map((time, slotIdx) => (
-            <>
+    <>
+      <div className="overflow-x-auto">
+        <div className="inline-block min-w-full">
+          <div className="grid gap-1" style={{ gridTemplateColumns: `auto repeat(${days}, minmax(60px, 1fr))` }}>
+            {/* Header row */}
+            <div className="h-12" />
+            {Array.from({ length: days }).map((_, dayIdx) => (
               <div
-                key={`time-${slotIdx}`}
-                className="text-xs text-right pr-2 py-1 text-gray-600 dark:text-gray-400"
+                key={dayIdx}
+                className="text-xs font-medium text-center py-2 sticky top-0 bg-white dark:bg-black z-10"
               >
-                {time}
+                {getDayLabel(dayIdx, settings)}
               </div>
-              {Array.from({ length: days }).map((_, dayIdx) => {
-                const idx = dayIdx * slotsPerDay + slotIdx;
-                const count = slotCounts[idx] || 0;
-                return (
-                  <button
-                    key={`${dayIdx}-${slotIdx}`}
-                    onClick={() => setSelectedSlot(idx)}
-                    className={`h-8 rounded ${getColor(count)} flex items-center justify-center text-xs font-medium hover:ring-2 hover:ring-blue-500 cursor-pointer transition-all`}
-                    title={`Click to see who's available`}
-                  >
-                    {count > 0 && count}
-                  </button>
-                );
-              })}
-            </>
-          ))}
-        </div>
+            ))}
 
-        {/* Legend */}
-        <div className="mt-6 flex flex-wrap gap-4 justify-center text-xs">
-          <div className="flex items-center gap-2">
-            <div className="w-4 h-4 bg-gray-100 dark:bg-gray-800 rounded" />
-            <span>None</span>
+            {/* Time rows */}
+            {timeLabels.map((time, slotIdx) => (
+              <>
+                <div
+                  key={`time-${slotIdx}`}
+                  className="text-xs text-right pr-2 py-1 text-gray-600 dark:text-gray-400"
+                >
+                  {time}
+                </div>
+                {Array.from({ length: days }).map((_, dayIdx) => {
+                  const idx = dayIdx * slotsPerDay + slotIdx;
+                  const count = slotCounts[idx] || 0;
+                  return (
+                    <button
+                      key={`${dayIdx}-${slotIdx}`}
+                      onClick={() => setSelectedSlot(idx)}
+                      className={`h-8 rounded ${getColor(count)} flex items-center justify-center text-xs font-medium hover:ring-2 hover:ring-blue-500 cursor-pointer transition-all`}
+                      title={`Click to see who's available`}
+                    >
+                      {count > 0 && count}
+                    </button>
+                  );
+                })}
+              </>
+            ))}
           </div>
-          <div className="flex items-center gap-2">
-            <div className="w-4 h-4 bg-red-400 dark:bg-red-600 rounded" />
-            <span>&lt; 25%</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-4 h-4 bg-orange-400 dark:bg-orange-600 rounded" />
-            <span>25-50%</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-4 h-4 bg-yellow-400 dark:bg-yellow-600 rounded" />
-            <span>50-75%</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-4 h-4 bg-green-500 dark:bg-green-600 rounded" />
-            <span>≥ 75%</span>
+
+          {/* Legend */}
+          <div className="mt-6 flex flex-wrap gap-4 justify-center text-xs">
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 bg-gray-100 dark:bg-gray-800 rounded" />
+              <span>None</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 bg-red-400 dark:bg-red-600 rounded" />
+              <span>&lt; 25%</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 bg-orange-400 dark:bg-orange-600 rounded" />
+              <span>25-50%</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 bg-yellow-400 dark:bg-yellow-600 rounded" />
+              <span>50-75%</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 bg-green-500 dark:bg-green-600 rounded" />
+              <span>≥ 75%</span>
+            </div>
           </div>
         </div>
       </div>
-    </div>
 
       {/* Slot detail modal */}
       {selectedSlot !== null && (
@@ -497,7 +498,7 @@ function Heatmap({
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 }
 
