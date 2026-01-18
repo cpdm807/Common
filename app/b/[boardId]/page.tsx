@@ -97,11 +97,30 @@ export default function BoardPage() {
   return (
     <div className="min-h-screen px-4 py-8 md:py-12">
       <div className="max-w-6xl mx-auto">
+        {/* Navigation */}
+        <div className="mb-6 flex gap-3">
+          <Link
+            href="/"
+            className="px-4 py-2 border border-gray-300 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg transition-colors"
+          >
+            ← Home
+          </Link>
+          <Link
+            href="/tools/availability/create"
+            className="px-4 py-2 border border-gray-300 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg transition-colors"
+          >
+            Create new board
+          </Link>
+        </div>
+
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-2xl md:text-3xl font-bold mb-2">
-            {board.title || "Availability"}
-          </h1>
+          <div className="flex items-center gap-3 mb-2">
+            <span className="text-4xl">📅</span>
+            <h1 className="text-2xl md:text-3xl font-bold">
+              {board.title || "Availability"}
+            </h1>
+          </div>
 
           <div className="flex flex-wrap gap-2 items-center text-sm">
             <span
@@ -221,22 +240,6 @@ export default function BoardPage() {
             </Link>
           </div>
         )}
-
-        {/* Navigation */}
-        <div className="mb-8 flex gap-3">
-          <Link
-            href="/"
-            className="px-4 py-2 border border-gray-300 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg transition-colors"
-          >
-            ← Home
-          </Link>
-          <Link
-            href="/tools/availability/create"
-            className="px-4 py-2 border border-gray-300 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg transition-colors"
-          >
-            Create new board
-          </Link>
-        </div>
 
         {/* Share link */}
         <div className="mb-8 p-6 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg">

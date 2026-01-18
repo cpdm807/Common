@@ -79,16 +79,20 @@ export default function HomePage() {
                       href={tool.href}
                       className="block p-6 border-2 border-gray-200 dark:border-gray-800 rounded-lg hover:border-blue-500 dark:hover:border-blue-500 transition-colors h-full"
                     >
-                      <div className="text-4xl mb-3">{tool.icon}</div>
-                      <h3 className="text-xl font-semibold mb-2">{tool.name}</h3>
+                      <div className="flex items-center gap-3 mb-3">
+                        <span className="text-3xl">{tool.icon}</span>
+                        <h3 className="text-xl font-semibold">{tool.name}</h3>
+                      </div>
                       <p className="text-gray-600 dark:text-gray-400">
                         {tool.description}
                       </p>
                     </Link>
                   ) : (
                     <div className="p-6 border-2 border-gray-200 dark:border-gray-800 rounded-lg opacity-50 h-full">
-                      <div className="text-4xl mb-3">{tool.icon}</div>
-                      <h3 className="text-xl font-semibold mb-2">{tool.name}</h3>
+                      <div className="flex items-center gap-3 mb-3">
+                        <span className="text-3xl">{tool.icon}</span>
+                        <h3 className="text-xl font-semibold">{tool.name}</h3>
+                      </div>
                       <p className="text-gray-600 dark:text-gray-400 mb-2">
                         {tool.description}
                       </p>

@@ -92,13 +92,51 @@ export default function AddAvailabilityPage() {
     setSelectedSlots(newSelected);
   };
 
+  const handleSlotTouchStart = (slotIdx: number, e: React.TouchEvent) => {
+    e.preventDefault(); // Prevent scrolling
+    setIsDragging(true);
+    const isSelected = selectedSlots.has(slotIdx);
+    setDragMode(isSelected ? "deselect" : "select");
+    handleSlotToggle(slotIdx);
+  };
+
+  const handleSlotTouchMove = (e: React.TouchEvent) => {
+    if (!isDragging) return;
+    e.preventDefault(); // Prevent scrolling
+    
+    const touch = e.touches[0];
+    const element = document.elementFromPoint(touch.clientX, touch.clientY);
+    const slotIdx = element?.getAttribute('data-slot-idx');
+    
+    if (slotIdx !== null && slotIdx !== undefined) {
+      const idx = parseInt(slotIdx);
+      if (!isNaN(idx)) {
+        const newSelected = new Set(selectedSlots);
+        if (dragMode === "select") {
+          newSelected.add(idx);
+        } else {
+          newSelected.delete(idx);
+        }
+        setSelectedSlots(newSelected);
+      }
+    }
+  };
+
   const handleMouseUp = () => {
+    setIsDragging(false);
+  };
+
+  const handleTouchEnd = () => {
     setIsDragging(false);
   };
 
   useEffect(() => {
     document.addEventListener("mouseup", handleMouseUp);
-    return () => document.removeEventListener("mouseup", handleMouseUp);
+    document.addEventListener("touchend", handleTouchEnd);
+    return () => {
+      document.removeEventListener("mouseup", handleMouseUp);
+      document.removeEventListener("touchend", handleTouchEnd);
+    };
   }, []);
 
   const selectRow = (slotIdx: number) => {
@@ -217,9 +255,12 @@ export default function AddAvailabilityPage() {
           ← Back to board
         </Link>
 
-        <h1 className="text-2xl md:text-3xl font-bold mb-2">
-          {editingContributionId ? "Edit your availability" : "Add your availability"}
-        </h1>
+        <div className="flex items-center gap-3 mb-2">
+          <span className="text-4xl">📅</span>
+          <h1 className="text-2xl md:text-3xl font-bold">
+            {editingContributionId ? "Edit your availability" : "Add your availability"}
+          </h1>
+        </div>
         <p className="text-gray-600 dark:text-gray-400 mb-8">
           {board.title || "Availability"}
         </p>
@@ -244,8 +285,8 @@ export default function AddAvailabilityPage() {
           {/* Instructions */}
           <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
             <p className="text-sm">
-              <strong>Click and drag</strong> to select multiple slots. Click individual slots to toggle.
-              Click row/column headers to select entire rows/columns.
+              <strong>Desktop:</strong> Click and drag to select multiple slots.{" "}
+              <strong>Mobile:</strong> Touch and drag to select. Click row/column headers to select entire rows/columns.
             </p>
           </div>
 
@@ -257,6 +298,8 @@ export default function AddAvailabilityPage() {
               selectedSlots={selectedSlots}
               onSlotMouseDown={handleSlotMouseDown}
               onSlotMouseEnter={handleSlotMouseEnter}
+              onSlotTouchStart={handleSlotTouchStart}
+              onSlotTouchMove={handleSlotTouchMove}
               onSelectRow={selectRow}
               onSelectColumn={selectColumn}
             />
@@ -294,6 +337,8 @@ function AvailabilityGrid({
   selectedSlots,
   onSlotMouseDown,
   onSlotMouseEnter,
+  onSlotTouchStart,
+  onSlotTouchMove,
   onSelectRow,
   onSelectColumn,
 }: {
@@ -301,6 +346,8 @@ function AvailabilityGrid({
   selectedSlots: Set<number>;
   onSlotMouseDown: (slotIdx: number) => void;
   onSlotMouseEnter: (slotIdx: number) => void;
+  onSlotTouchStart: (slotIdx: number, e: React.TouchEvent) => void;
+  onSlotTouchMove: (e: React.TouchEvent) => void;
   onSelectRow: (slotIdx: number) => void;
   onSelectColumn: (dayIndex: number) => void;
 }) {
@@ -362,8 +409,11 @@ function AvailabilityGrid({
                   <button
                     key={`${dayIdx}-${slotIdx}`}
                     type="button"
+                    data-slot-idx={idx}
                     onMouseDown={() => onSlotMouseDown(idx)}
                     onMouseEnter={() => onSlotMouseEnter(idx)}
+                    onTouchStart={(e) => onSlotTouchStart(idx, e)}
+                    onTouchMove={onSlotTouchMove}
                     className={`h-10 md:h-12 rounded border-2 transition-all touch-manipulation select-none ${
                       isSelected
                         ? "bg-blue-500 border-blue-600 dark:bg-blue-600 dark:border-blue-700"
