@@ -373,7 +373,7 @@ function AvailabilityGrid({
               key={dayIdx}
               type="button"
               onClick={() => onSelectColumn(dayIdx)}
-              className="text-xs font-medium text-center py-2 sticky top-0 bg-white dark:bg-gray-950 z-10 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded transition-colors border-b border-gray-200 dark:border-gray-800"
+              className="text-xs font-medium text-center py-2 sticky top-0 bg-white dark:bg-gray-950 text-gray-900 dark:text-gray-100 z-10 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded transition-colors border-b border-gray-200 dark:border-gray-800"
               title="Click to select entire column"
             >
               {getDayLabel(dayIdx, settings)}
@@ -387,7 +387,7 @@ function AvailabilityGrid({
                 key={`time-${slotIdx}`}
                 type="button"
                 onClick={() => onSelectRow(slotIdx)}
-                className="text-xs text-right pr-2 py-1 text-gray-600 dark:text-gray-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded transition-colors sticky left-0 bg-white dark:bg-gray-950 z-10 border-r border-gray-200 dark:border-gray-800"
+                className="text-xs text-right pr-2 py-1 text-gray-900 dark:text-gray-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded transition-colors sticky left-0 bg-white dark:bg-gray-950 z-10 border-r border-gray-200 dark:border-gray-800"
                 title="Click to select entire row"
               >
                 {time}

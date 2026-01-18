@@ -101,13 +101,13 @@ export default function BoardPage() {
         <div className="mb-6 flex gap-3">
           <Link
             href="/"
-            className="px-4 py-2 border border-gray-300 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg transition-colors"
+            className="px-4 py-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg transition-colors text-gray-900 dark:text-gray-100"
           >
             ← Home
           </Link>
           <Link
             href="/tools/availability/create"
-            className="px-4 py-2 border border-gray-300 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg transition-colors"
+            className="px-4 py-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg transition-colors text-gray-900 dark:text-gray-100"
           >
             Create new board
           </Link>
@@ -187,46 +187,38 @@ export default function BoardPage() {
             </div>
           )}
 
-        {/* Contributors and Add button */}
+        {/* Contributors */}
+        {!board.computed.expired && board.computed.contributors && board.computed.contributors.length > 0 && (
+          <div className="mb-4">
+            <h2 className="font-semibold text-lg mb-3">Contributors</h2>
+            <div className="flex flex-wrap gap-3">
+              {board.computed.contributors.map((contributor) => (
+                <div
+                  key={contributor.contributionId}
+                  className="flex items-center gap-2 px-4 py-2 bg-gray-100 dark:bg-gray-800 rounded-lg text-gray-900 dark:text-gray-100"
+                >
+                  <span className="font-medium">{contributor.name}</span>
+                  <Link
+                    href={`/b/${boardId}/add?edit=${contributor.contributionId}`}
+                    className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
+                  >
+                    Edit
+                  </Link>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Add your availability button */}
         {!board.computed.expired && (
           <div className="mb-8">
-            {board.computed.contributors && board.computed.contributors.length > 0 ? (
-              <>
-                <div className="mb-4">
-                  <h2 className="font-semibold text-lg mb-3">Contributors</h2>
-                  <div className="flex flex-wrap gap-3">
-                    {board.computed.contributors.map((contributor) => (
-                      <div
-                        key={contributor.contributionId}
-                        className="flex items-center gap-2 px-4 py-2 bg-gray-100 dark:bg-gray-800 rounded-lg text-gray-900 dark:text-gray-100"
-                      >
-                        <span className="font-medium">{contributor.name}</span>
-                        <Link
-                          href={`/b/${boardId}/add?edit=${contributor.contributionId}`}
-                          className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
-                        >
-                          Edit
-                        </Link>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-                
-                <Link
-                  href={`/b/${boardId}/add`}
-                  className="inline-block bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-3 rounded-lg transition-colors"
-                >
-                  Add your availability
-                </Link>
-              </>
-            ) : (
-              <Link
-                href={`/b/${boardId}/add`}
-                className="inline-block bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-3 rounded-lg transition-colors"
-              >
-                Add your availability
-              </Link>
-            )}
+            <Link
+              href={`/b/${boardId}/add`}
+              className="inline-block bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-3 rounded-lg transition-colors"
+            >
+              Add your availability
+            </Link>
           </div>
         )}
 
