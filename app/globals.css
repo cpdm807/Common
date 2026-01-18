@@ -48,6 +48,17 @@ select option {
   color: #ededed;
 }
 
+/* Fix read-only input backgrounds */
+input[readonly] {
+  background-color: #f9fafb !important;
+  color: #374151 !important;
+}
+
+.dark input[readonly] {
+  background-color: #1f2937 !important;
+  color: #d1d5db !important;
+}
+
 @layer utilities {
   .text-balance {
     text-wrap: balance;

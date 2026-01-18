@@ -109,10 +109,21 @@ export default function AddAvailabilityPage() {
     const slotsPerDay = computeSlotsPerDay(settings);
     const slotInDay = slotIdx % slotsPerDay;
     
-    const newSelected = new Set(selectedSlots);
+    // Check if all slots in this row are selected
+    const rowSlots = [];
     for (let day = 0; day < settings.days; day++) {
       const idx = day * slotsPerDay + slotInDay;
-      newSelected.add(idx);
+      rowSlots.push(idx);
+    }
+    const allSelected = rowSlots.every(idx => selectedSlots.has(idx));
+    
+    const newSelected = new Set(selectedSlots);
+    if (allSelected) {
+      // Deselect all in row
+      rowSlots.forEach(idx => newSelected.delete(idx));
+    } else {
+      // Select all in row
+      rowSlots.forEach(idx => newSelected.add(idx));
     }
     setSelectedSlots(newSelected);
   };
@@ -122,10 +133,21 @@ export default function AddAvailabilityPage() {
     const settings = board.settings as AvailabilitySettings;
     const slotsPerDay = computeSlotsPerDay(settings);
     
-    const newSelected = new Set(selectedSlots);
+    // Check if all slots in this column are selected
+    const columnSlots = [];
     for (let slot = 0; slot < slotsPerDay; slot++) {
       const idx = dayIndex * slotsPerDay + slot;
-      newSelected.add(idx);
+      columnSlots.push(idx);
+    }
+    const allSelected = columnSlots.every(idx => selectedSlots.has(idx));
+    
+    const newSelected = new Set(selectedSlots);
+    if (allSelected) {
+      // Deselect all in column
+      columnSlots.forEach(idx => newSelected.delete(idx));
+    } else {
+      // Select all in column
+      columnSlots.forEach(idx => newSelected.add(idx));
     }
     setSelectedSlots(newSelected);
   };
@@ -249,8 +271,15 @@ export default function AddAvailabilityPage() {
           {/* Instructions */}
           <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
             <p className="text-sm">
-              <strong>Desktop:</strong> Click and drag to select multiple slots.{" "}
-              <strong>Mobile:</strong> Tap individual slots to toggle. Tap row/column headers to select entire rows/columns.
+              {'ontouchstart' in window ? (
+                <>
+                  <strong>Tap</strong> individual slots to select or deselect. Tap row/column headers to select entire rows/columns.
+                </>
+              ) : (
+                <>
+                  <strong>Click and drag</strong> to select multiple slots, or click individual slots to toggle. Click row/column headers to select entire rows/columns.
+                </>
+              )}
             </p>
           </div>
 
@@ -329,7 +358,7 @@ function AvailabilityGrid({
   }
 
   return (
-    <div className="overflow-x-auto">
+    <div className="overflow-x-auto overflow-y-auto max-h-[600px]">
       <div className="inline-block min-w-full">
         <div
           className="grid gap-1"
@@ -337,14 +366,14 @@ function AvailabilityGrid({
             gridTemplateColumns: `auto repeat(${days}, minmax(60px, 1fr))`,
           }}
         >
-          {/* Header row */}
-          <div className="h-12" />
+          {/* Header row - sticky */}
+          <div className="h-12 sticky top-0 left-0 bg-white dark:bg-gray-950 z-20" />
           {Array.from({ length: days }).map((_, dayIdx) => (
             <button
               key={dayIdx}
               type="button"
               onClick={() => onSelectColumn(dayIdx)}
-              className="text-xs font-medium text-center py-2 sticky top-0 bg-white dark:bg-black z-10 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded transition-colors"
+              className="text-xs font-medium text-center py-2 sticky top-0 bg-white dark:bg-gray-950 z-10 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded transition-colors border-b border-gray-200 dark:border-gray-800"
               title="Click to select entire column"
             >
               {getDayLabel(dayIdx, settings)}
@@ -358,7 +387,7 @@ function AvailabilityGrid({
                 key={`time-${slotIdx}`}
                 type="button"
                 onClick={() => onSelectRow(slotIdx)}
-                className="text-xs text-right pr-2 py-1 text-gray-600 dark:text-gray-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded transition-colors"
+                className="text-xs text-right pr-2 py-1 text-gray-600 dark:text-gray-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded transition-colors sticky left-0 bg-white dark:bg-gray-950 z-10 border-r border-gray-200 dark:border-gray-800"
                 title="Click to select entire row"
               >
                 {time}

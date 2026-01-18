@@ -190,34 +190,43 @@ export default function BoardPage() {
         {/* Contributors and Add button */}
         {!board.computed.expired && (
           <div className="mb-8">
-            {board.computed.contributors && board.computed.contributors.length > 0 && (
-              <div className="mb-4">
-                <h2 className="font-semibold text-lg mb-3">Contributors</h2>
-                <div className="flex flex-wrap gap-3">
-                  {board.computed.contributors.map((contributor) => (
-                    <div
-                      key={contributor.contributionId}
-                      className="flex items-center gap-2 px-4 py-2 bg-gray-100 dark:bg-gray-800 rounded-lg"
-                    >
-                      <span className="font-medium">{contributor.name}</span>
-                      <Link
-                        href={`/b/${boardId}/add?edit=${contributor.contributionId}`}
-                        className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
+            {board.computed.contributors && board.computed.contributors.length > 0 ? (
+              <>
+                <div className="mb-4">
+                  <h2 className="font-semibold text-lg mb-3">Contributors</h2>
+                  <div className="flex flex-wrap gap-3">
+                    {board.computed.contributors.map((contributor) => (
+                      <div
+                        key={contributor.contributionId}
+                        className="flex items-center gap-2 px-4 py-2 bg-gray-100 dark:bg-gray-800 rounded-lg text-gray-900 dark:text-gray-100"
                       >
-                        Edit
-                      </Link>
-                    </div>
-                  ))}
+                        <span className="font-medium">{contributor.name}</span>
+                        <Link
+                          href={`/b/${boardId}/add?edit=${contributor.contributionId}`}
+                          className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
+                        >
+                          Edit
+                        </Link>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              </div>
+                
+                <Link
+                  href={`/b/${boardId}/add`}
+                  className="inline-block bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-3 rounded-lg transition-colors"
+                >
+                  Add your availability
+                </Link>
+              </>
+            ) : (
+              <Link
+                href={`/b/${boardId}/add`}
+                className="inline-block bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-3 rounded-lg transition-colors"
+              >
+                Add your availability
+              </Link>
             )}
-            
-            <Link
-              href={`/b/${boardId}/add`}
-              className="inline-block bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-3 rounded-lg transition-colors"
-            >
-              Add your availability
-            </Link>
           </div>
         )}
 
@@ -408,12 +417,12 @@ function Heatmap({
             {/* Header row */}
             <div className="h-12" />
             {Array.from({ length: days }).map((_, dayIdx) => (
-              <div
-                key={dayIdx}
-                className="text-xs font-medium text-center py-2 sticky top-0 bg-white dark:bg-black z-10"
-              >
-                {getDayLabel(dayIdx, settings)}
-              </div>
+            <div
+              key={dayIdx}
+              className="text-xs font-medium text-center py-2 sticky top-0 bg-white dark:bg-gray-950 z-10 text-gray-900 dark:text-gray-100"
+            >
+              {getDayLabel(dayIdx, settings)}
+            </div>
             ))}
 
             {/* Time rows */}
