@@ -92,50 +92,14 @@ export default function AddAvailabilityPage() {
     setSelectedSlots(newSelected);
   };
 
-  const handleSlotTouchStart = (slotIdx: number, e: React.TouchEvent) => {
-    e.preventDefault(); // Prevent scrolling
-    setIsDragging(true);
-    const isSelected = selectedSlots.has(slotIdx);
-    setDragMode(isSelected ? "deselect" : "select");
-    handleSlotToggle(slotIdx);
-  };
-
-  const handleSlotTouchMove = (e: React.TouchEvent) => {
-    if (!isDragging) return;
-    e.preventDefault(); // Prevent scrolling
-    
-    const touch = e.touches[0];
-    const element = document.elementFromPoint(touch.clientX, touch.clientY);
-    const slotIdx = element?.getAttribute('data-slot-idx');
-    
-    if (slotIdx !== null && slotIdx !== undefined) {
-      const idx = parseInt(slotIdx);
-      if (!isNaN(idx)) {
-        const newSelected = new Set(selectedSlots);
-        if (dragMode === "select") {
-          newSelected.add(idx);
-        } else {
-          newSelected.delete(idx);
-        }
-        setSelectedSlots(newSelected);
-      }
-    }
-  };
-
   const handleMouseUp = () => {
-    setIsDragging(false);
-  };
-
-  const handleTouchEnd = () => {
     setIsDragging(false);
   };
 
   useEffect(() => {
     document.addEventListener("mouseup", handleMouseUp);
-    document.addEventListener("touchend", handleTouchEnd);
     return () => {
       document.removeEventListener("mouseup", handleMouseUp);
-      document.removeEventListener("touchend", handleTouchEnd);
     };
   }, []);
 
@@ -286,7 +250,7 @@ export default function AddAvailabilityPage() {
           <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
             <p className="text-sm">
               <strong>Desktop:</strong> Click and drag to select multiple slots.{" "}
-              <strong>Mobile:</strong> Touch and drag to select. Click row/column headers to select entire rows/columns.
+              <strong>Mobile:</strong> Tap individual slots to toggle. Tap row/column headers to select entire rows/columns.
             </p>
           </div>
 
@@ -296,10 +260,9 @@ export default function AddAvailabilityPage() {
             <AvailabilityGrid
               settings={settings}
               selectedSlots={selectedSlots}
+              onSlotToggle={handleSlotToggle}
               onSlotMouseDown={handleSlotMouseDown}
               onSlotMouseEnter={handleSlotMouseEnter}
-              onSlotTouchStart={handleSlotTouchStart}
-              onSlotTouchMove={handleSlotTouchMove}
               onSelectRow={selectRow}
               onSelectColumn={selectColumn}
             />
@@ -335,19 +298,17 @@ export default function AddAvailabilityPage() {
 function AvailabilityGrid({
   settings,
   selectedSlots,
+  onSlotToggle,
   onSlotMouseDown,
   onSlotMouseEnter,
-  onSlotTouchStart,
-  onSlotTouchMove,
   onSelectRow,
   onSelectColumn,
 }: {
   settings: AvailabilitySettings;
   selectedSlots: Set<number>;
+  onSlotToggle: (slotIdx: number) => void;
   onSlotMouseDown: (slotIdx: number) => void;
   onSlotMouseEnter: (slotIdx: number) => void;
-  onSlotTouchStart: (slotIdx: number, e: React.TouchEvent) => void;
-  onSlotTouchMove: (e: React.TouchEvent) => void;
   onSelectRow: (slotIdx: number) => void;
   onSelectColumn: (dayIndex: number) => void;
 }) {
@@ -409,15 +370,23 @@ function AvailabilityGrid({
                   <button
                     key={`${dayIdx}-${slotIdx}`}
                     type="button"
-                    data-slot-idx={idx}
-                    onMouseDown={() => onSlotMouseDown(idx)}
-                    onMouseEnter={() => onSlotMouseEnter(idx)}
-                    onTouchStart={(e) => onSlotTouchStart(idx, e)}
-                    onTouchMove={onSlotTouchMove}
-                    className={`h-10 md:h-12 rounded border-2 transition-all touch-manipulation select-none ${
+                    onClick={() => onSlotToggle(idx)}
+                    onMouseDown={(e) => {
+                      // Only enable drag on desktop (devices with mouse)
+                      if (e.button === 0 && !('ontouchstart' in window)) {
+                        onSlotMouseDown(idx);
+                      }
+                    }}
+                    onMouseEnter={() => {
+                      // Only handle drag on desktop
+                      if (!('ontouchstart' in window)) {
+                        onSlotMouseEnter(idx);
+                      }
+                    }}
+                    className={`h-10 md:h-12 rounded border-2 transition-all select-none ${
                       isSelected
                         ? "bg-blue-500 border-blue-600 dark:bg-blue-600 dark:border-blue-700"
-                        : "bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700 hover:border-blue-400"
+                        : "bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700 hover:border-blue-400 active:border-blue-500"
                     }`}
                     aria-label={`${getDayLabel(dayIdx, settings)} ${time}`}
                   />

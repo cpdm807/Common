@@ -187,6 +187,40 @@ export default function BoardPage() {
             </div>
           )}
 
+        {/* Contributors and Add button */}
+        {!board.computed.expired && (
+          <div className="mb-8">
+            {board.computed.contributors && board.computed.contributors.length > 0 && (
+              <div className="mb-4">
+                <h2 className="font-semibold text-lg mb-3">Contributors</h2>
+                <div className="flex flex-wrap gap-3">
+                  {board.computed.contributors.map((contributor) => (
+                    <div
+                      key={contributor.contributionId}
+                      className="flex items-center gap-2 px-4 py-2 bg-gray-100 dark:bg-gray-800 rounded-lg"
+                    >
+                      <span className="font-medium">{contributor.name}</span>
+                      <Link
+                        href={`/b/${boardId}/add?edit=${contributor.contributionId}`}
+                        className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
+                      >
+                        Edit
+                      </Link>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            
+            <Link
+              href={`/b/${boardId}/add`}
+              className="inline-block bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-3 rounded-lg transition-colors"
+            >
+              Add your availability
+            </Link>
+          </div>
+        )}
+
         {/* Heatmap */}
         {!board.computed.expired && board.computed.slotCounts && board.computed.contributors && (
           <div className="mb-8">
