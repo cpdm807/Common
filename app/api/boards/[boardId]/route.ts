@@ -58,6 +58,7 @@ export async function GET(
     // Compute aggregated data for availability boards
     let slotCounts: number[] | undefined;
     let bestWindows;
+    let contributors;
 
     if (board.toolType === "availability") {
       const slotCount = computeSlotCount(board.settings as AvailabilitySettings);
@@ -68,6 +69,13 @@ export async function GET(
           slotCounts,
           board.settings as AvailabilitySettings
         );
+        
+        // Include contributor info
+        contributors = contributions.map((c) => ({
+          contributionId: c.contributionId,
+          name: c.name || "Anonymous",
+          selectedSlots: (c.payload as { selectedSlotIndexes?: number[] })?.selectedSlotIndexes,
+        }));
       }
     }
 
@@ -85,6 +93,7 @@ export async function GET(
         contributorsCount,
         slotCounts,
         bestWindows,
+        contributors,
       },
     };
 

@@ -82,5 +82,10 @@ export interface BoardPublicData {
     contributorsCount: number;
     slotCounts?: number[];
     bestWindows?: BestWindow[];
+    contributors?: Array<{
+      contributionId: string;
+      name?: string;
+      selectedSlots?: number[];
+    }>;
   };
 }

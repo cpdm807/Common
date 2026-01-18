@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import type { BoardPublicData, AvailabilitySettings } from "@/lib/types";
@@ -17,6 +17,8 @@ export default function AddAvailabilityPage() {
 
   const [name, setName] = useState("");
   const [selectedSlots, setSelectedSlots] = useState<Set<number>>(new Set());
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragMode, setDragMode] = useState<"select" | "deselect">("select");
 
   useEffect(() => {
     if (!boardId) return;
@@ -46,6 +48,61 @@ export default function AddAvailabilityPage() {
       newSelected.delete(slotIdx);
     } else {
       newSelected.add(slotIdx);
+    }
+    setSelectedSlots(newSelected);
+  };
+
+  const handleSlotMouseDown = (slotIdx: number) => {
+    setIsDragging(true);
+    const isSelected = selectedSlots.has(slotIdx);
+    setDragMode(isSelected ? "deselect" : "select");
+    handleSlotToggle(slotIdx);
+  };
+
+  const handleSlotMouseEnter = (slotIdx: number) => {
+    if (!isDragging) return;
+    
+    const newSelected = new Set(selectedSlots);
+    if (dragMode === "select") {
+      newSelected.add(slotIdx);
+    } else {
+      newSelected.delete(slotIdx);
+    }
+    setSelectedSlots(newSelected);
+  };
+
+  const handleMouseUp = () => {
+    setIsDragging(false);
+  };
+
+  useEffect(() => {
+    document.addEventListener("mouseup", handleMouseUp);
+    return () => document.removeEventListener("mouseup", handleMouseUp);
+  }, []);
+
+  const selectRow = (slotIdx: number) => {
+    if (!board) return;
+    const settings = board.settings as AvailabilitySettings;
+    const slotsPerDay = computeSlotsPerDay(settings);
+    const slotInDay = slotIdx % slotsPerDay;
+    
+    const newSelected = new Set(selectedSlots);
+    for (let day = 0; day < settings.days; day++) {
+      const idx = day * slotsPerDay + slotInDay;
+      newSelected.add(idx);
+    }
+    setSelectedSlots(newSelected);
+  };
+
+  const selectColumn = (dayIndex: number) => {
+    if (!board) return;
+    const settings = board.settings as AvailabilitySettings;
+    const slotsPerDay = computeSlotsPerDay(settings);
+    
+    const newSelected = new Set(selectedSlots);
+    for (let slot = 0; slot < slotsPerDay; slot++) {
+      const idx = dayIndex * slotsPerDay + slot;
+      newSelected.add(idx);
     }
     setSelectedSlots(newSelected);
   };
@@ -160,8 +217,8 @@ export default function AddAvailabilityPage() {
           {/* Instructions */}
           <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
             <p className="text-sm">
-              Tap or click time slots to mark when you&rsquo;re available. Selected slots
-              will be highlighted.
+              <strong>Click and drag</strong> to select multiple slots. Click individual slots to toggle.
+              Click row/column headers to select entire rows/columns.
             </p>
           </div>
 
@@ -171,7 +228,10 @@ export default function AddAvailabilityPage() {
             <AvailabilityGrid
               settings={settings}
               selectedSlots={selectedSlots}
-              onSlotToggle={handleSlotToggle}
+              onSlotMouseDown={handleSlotMouseDown}
+              onSlotMouseEnter={handleSlotMouseEnter}
+              onSelectRow={selectRow}
+              onSelectColumn={selectColumn}
             />
           </div>
 
@@ -205,11 +265,17 @@ export default function AddAvailabilityPage() {
 function AvailabilityGrid({
   settings,
   selectedSlots,
-  onSlotToggle,
+  onSlotMouseDown,
+  onSlotMouseEnter,
+  onSelectRow,
+  onSelectColumn,
 }: {
   settings: AvailabilitySettings;
   selectedSlots: Set<number>;
-  onSlotToggle: (slotIdx: number) => void;
+  onSlotMouseDown: (slotIdx: number) => void;
+  onSlotMouseEnter: (slotIdx: number) => void;
+  onSelectRow: (slotIdx: number) => void;
+  onSelectColumn: (dayIndex: number) => void;
 }) {
   const slotsPerDay = computeSlotsPerDay(settings);
   const days = settings.days;
@@ -220,9 +286,11 @@ function AvailabilityGrid({
     const minutesFromStart = i * settings.slotMinutes;
     const hour = settings.dayStart + Math.floor(minutesFromStart / 60);
     const minute = minutesFromStart % 60;
-    timeLabels.push(
-      `${hour.toString().padStart(2, "0")}:${minute.toString().padStart(2, "0")}`
-    );
+    
+    const hour12 = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
+    const period = hour < 12 ? "AM" : "PM";
+    
+    timeLabels.push(`${hour12}:${minute.toString().padStart(2, "0")} ${period}`);
   }
 
   return (
@@ -237,23 +305,29 @@ function AvailabilityGrid({
           {/* Header row */}
           <div className="h-12" />
           {Array.from({ length: days }).map((_, dayIdx) => (
-            <div
+            <button
               key={dayIdx}
-              className="text-xs font-medium text-center py-2 sticky top-0 bg-white dark:bg-black z-10"
+              type="button"
+              onClick={() => onSelectColumn(dayIdx)}
+              className="text-xs font-medium text-center py-2 sticky top-0 bg-white dark:bg-black z-10 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded transition-colors"
+              title="Click to select entire column"
             >
               {getDayLabel(dayIdx, settings)}
-            </div>
+            </button>
           ))}
 
           {/* Time rows */}
           {timeLabels.map((time, slotIdx) => (
             <>
-              <div
+              <button
                 key={`time-${slotIdx}`}
-                className="text-xs text-right pr-2 py-1 text-gray-600 dark:text-gray-400"
+                type="button"
+                onClick={() => onSelectRow(slotIdx)}
+                className="text-xs text-right pr-2 py-1 text-gray-600 dark:text-gray-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded transition-colors"
+                title="Click to select entire row"
               >
                 {time}
-              </div>
+              </button>
               {Array.from({ length: days }).map((_, dayIdx) => {
                 const idx = dayIdx * slotsPerDay + slotIdx;
                 const isSelected = selectedSlots.has(idx);
@@ -261,8 +335,9 @@ function AvailabilityGrid({
                   <button
                     key={`${dayIdx}-${slotIdx}`}
                     type="button"
-                    onClick={() => onSlotToggle(idx)}
-                    className={`h-10 md:h-12 rounded border-2 transition-all touch-manipulation ${
+                    onMouseDown={() => onSlotMouseDown(idx)}
+                    onMouseEnter={() => onSlotMouseEnter(idx)}
+                    className={`h-10 md:h-12 rounded border-2 transition-all touch-manipulation select-none ${
                       isSelected
                         ? "bg-blue-500 border-blue-600 dark:bg-blue-600 dark:border-blue-700"
                         : "bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700 hover:border-blue-400"

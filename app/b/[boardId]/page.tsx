@@ -169,13 +169,12 @@ export default function BoardPage() {
           )}
 
         {/* Heatmap */}
-        {!board.computed.expired && board.computed.slotCounts && (
+        {!board.computed.expired && board.computed.slotCounts && board.computed.contributors && (
           <div className="mb-8">
             <div className="mb-4">
               <h2 className="font-semibold text-lg mb-2">Availability heatmap</h2>
               <p className="text-sm text-gray-600 dark:text-gray-400">
-                {board.computed.contributorsCount} contributor
-                {board.computed.contributorsCount !== 1 ? "s" : ""}
+                Click on any cell to see who's available
               </p>
             </div>
 
@@ -183,7 +182,31 @@ export default function BoardPage() {
               slotCounts={board.computed.slotCounts}
               settings={settings}
               contributorsCount={board.computed.contributorsCount}
+              contributors={board.computed.contributors}
             />
+          </div>
+        )}
+
+        {/* Contributors list */}
+        {!board.computed.expired && board.computed.contributors && board.computed.contributors.length > 0 && (
+          <div className="mb-6">
+            <h2 className="font-semibold text-lg mb-3">Contributors</h2>
+            <div className="flex flex-wrap gap-3">
+              {board.computed.contributors.map((contributor) => (
+                <div
+                  key={contributor.contributionId}
+                  className="flex items-center gap-2 px-4 py-2 bg-gray-100 dark:bg-gray-800 rounded-lg"
+                >
+                  <span className="font-medium">{contributor.name}</span>
+                  <Link
+                    href={`/b/${boardId}/add`}
+                    className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
+                  >
+                    Edit
+                  </Link>
+                </div>
+              ))}
+            </div>
           </div>
         )}
 
@@ -199,40 +222,39 @@ export default function BoardPage() {
           </div>
         )}
 
-        {/* Share links */}
+        {/* Navigation */}
+        <div className="mb-8 flex gap-3">
+          <Link
+            href="/"
+            className="px-4 py-2 border border-gray-300 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg transition-colors"
+          >
+            ← Home
+          </Link>
+          <Link
+            href="/tools/availability/create"
+            className="px-4 py-2 border border-gray-300 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg transition-colors"
+          >
+            Create new board
+          </Link>
+        </div>
+
+        {/* Share link */}
         <div className="mb-8 p-6 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg">
           <h2 className="font-semibold mb-3">Share this board</h2>
           
-          <div className="space-y-3">
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={boardUrl}
-                readOnly
-                className="flex-1 px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded text-sm font-mono"
-              />
-              <button
-                onClick={() => handleCopy(boardUrl, false)}
-                className="px-4 py-2 bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 rounded font-medium transition-colors"
-              >
-                {copied ? "Copied!" : "Copy link"}
-              </button>
-            </div>
-
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={previewUrl}
-                readOnly
-                className="flex-1 px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded text-sm font-mono"
-              />
-              <button
-                onClick={() => handleCopy(previewUrl, true)}
-                className="px-4 py-2 bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 rounded font-medium transition-colors"
-              >
-                {copiedPreview ? "Copied!" : "Copy preview"}
-              </button>
-            </div>
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={boardUrl}
+              readOnly
+              className="flex-1 px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded text-sm font-mono"
+            />
+            <button
+              onClick={() => handleCopy(boardUrl, false)}
+              className="px-4 py-2 bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 rounded font-medium transition-colors"
+            >
+              {copied ? "Copied!" : "Copy link"}
+            </button>
           </div>
         </div>
 
@@ -286,11 +308,18 @@ function Heatmap({
   slotCounts,
   settings,
   contributorsCount,
+  contributors,
 }: {
   slotCounts: number[];
   settings: AvailabilitySettings;
   contributorsCount: number;
+  contributors: Array<{
+    contributionId: string;
+    name?: string;
+    selectedSlots?: number[];
+  }>;
 }) {
+  const [selectedSlot, setSelectedSlot] = useState<number | null>(null);
   const slotsPerDay = computeSlotsPerDay(settings);
   const days = settings.days;
 
@@ -300,9 +329,11 @@ function Heatmap({
     const minutesFromStart = i * settings.slotMinutes;
     const hour = settings.dayStart + Math.floor(minutesFromStart / 60);
     const minute = minutesFromStart % 60;
-    timeLabels.push(
-      `${hour.toString().padStart(2, "0")}:${minute.toString().padStart(2, "0")}`
-    );
+    
+    const hour12 = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
+    const period = hour < 12 ? "AM" : "PM";
+    
+    timeLabels.push(`${hour12}:${minute.toString().padStart(2, "0")} ${period}`);
   }
 
   // Get color for cell
@@ -313,6 +344,23 @@ function Heatmap({
     if (ratio >= 0.5) return "bg-yellow-400 dark:bg-yellow-600";
     if (ratio >= 0.25) return "bg-orange-400 dark:bg-orange-600";
     return "bg-red-400 dark:bg-red-600";
+  };
+
+  // Get who's available for a slot
+  const getAvailableContributors = (slotIdx: number) => {
+    const available: string[] = [];
+    const unavailable: string[] = [];
+    
+    contributors.forEach((contributor) => {
+      const isAvailable = contributor.selectedSlots?.includes(slotIdx);
+      if (isAvailable) {
+        available.push(contributor.name || "Anonymous");
+      } else {
+        unavailable.push(contributor.name || "Anonymous");
+      }
+    });
+    
+    return { available, unavailable };
   };
 
   return (
@@ -343,13 +391,14 @@ function Heatmap({
                 const idx = dayIdx * slotsPerDay + slotIdx;
                 const count = slotCounts[idx] || 0;
                 return (
-                  <div
+                  <button
                     key={`${dayIdx}-${slotIdx}`}
-                    className={`h-8 rounded ${getColor(count)} flex items-center justify-center text-xs font-medium`}
-                    title={`${count}/${contributorsCount} available`}
+                    onClick={() => setSelectedSlot(idx)}
+                    className={`h-8 rounded ${getColor(count)} flex items-center justify-center text-xs font-medium hover:ring-2 hover:ring-blue-500 cursor-pointer transition-all`}
+                    title={`Click to see who's available`}
                   >
                     {count > 0 && count}
-                  </div>
+                  </button>
                 );
               })}
             </>
@@ -381,6 +430,74 @@ function Heatmap({
         </div>
       </div>
     </div>
+
+      {/* Slot detail modal */}
+      {selectedSlot !== null && (
+        <div
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+          onClick={() => setSelectedSlot(null)}
+        >
+          <div
+            className="bg-white dark:bg-gray-900 rounded-lg p-6 max-w-md w-full"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start justify-between mb-4">
+              <div>
+                <h3 className="font-semibold text-lg">
+                  {getDayLabel(Math.floor(selectedSlot / slotsPerDay), settings)}
+                </h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  {slotIndexToTimeString(selectedSlot, settings)}
+                </p>
+              </div>
+              <button
+                onClick={() => setSelectedSlot(null)}
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+              >
+                ✕
+              </button>
+            </div>
+
+            {(() => {
+              const { available, unavailable } = getAvailableContributors(selectedSlot);
+              return (
+                <div className="space-y-4">
+                  {available.length > 0 && (
+                    <div>
+                      <h4 className="font-medium text-green-600 dark:text-green-400 mb-2">
+                        Available ({available.length})
+                      </h4>
+                      <ul className="space-y-1">
+                        {available.map((name, idx) => (
+                          <li key={idx} className="text-sm">
+                            ✓ {name}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {unavailable.length > 0 && (
+                    <div>
+                      <h4 className="font-medium text-gray-600 dark:text-gray-400 mb-2">
+                        Unavailable ({unavailable.length})
+                      </h4>
+                      <ul className="space-y-1">
+                        {unavailable.map((name, idx) => (
+                          <li key={idx} className="text-sm text-gray-600 dark:text-gray-400">
+                            ✗ {name}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -399,7 +516,13 @@ function slotIndexToTimeString(
   const minutesFromDayStart = slotInDay * settings.slotMinutes;
   const hour = settings.dayStart + Math.floor(minutesFromDayStart / 60);
   const minute = minutesFromDayStart % 60;
-  return `${hour.toString().padStart(2, "0")}:${minute.toString().padStart(2, "0")}`;
+  
+  // Convert to 12-hour format with AM/PM
+  const hour12 = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
+  const period = hour < 12 ? "AM" : "PM";
+  const minuteStr = minute.toString().padStart(2, "0");
+  
+  return `${hour12}:${minuteStr} ${period}`;
 }
 
 function getDayLabel(dayIndex: number, settings: AvailabilitySettings): string {

@@ -121,30 +121,8 @@ export default function CreateAvailabilityPage() {
             />
           </div>
 
-          {/* Timezone */}
-          <div>
-            <label
-              htmlFor="tz"
-              className="block text-sm font-medium mb-2"
-            >
-              Timezone
-            </label>
-            <select
-              id="tz"
-              value={formData.tz}
-              onChange={(e) =>
-                setFormData({ ...formData, tz: e.target.value })
-              }
-              required
-              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              {commonTimezones.map((tz) => (
-                <option key={tz.value} value={tz.value}>
-                  {tz.label}
-                </option>
-              ))}
-            </select>
-          </div>
+          {/* Timezone - hidden for now */}
+          <input type="hidden" name="tz" value={formData.tz} />
 
           {/* Date range */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
