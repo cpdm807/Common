@@ -27,7 +27,7 @@ export const toolRegistry: Record<ToolType, ToolConfig> = {
   readiness: {
     displayName: "Pulse",
     createRoute: "/tools/readiness",
-    icon: "✅",
+    icon: "🟢",
     description: "Quick group check-ins on a shared scale",
     metadataTitle: (title?: string) =>
       title ? `Common – ${title}` : "Common – Pulse",

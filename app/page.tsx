@@ -54,23 +54,23 @@ export default function HomePage() {
       <main className="flex-1 px-4 py-12">
         <div className="max-w-4xl mx-auto">
           {/* Hero section */}
-          <div className="text-center mb-16">
+          <div className="text-center mb-8">
             <h1 className="text-4xl md:text-5xl font-bold mb-6 text-balance">
-              When things get messy, find what&rsquo;s common.
+              When things get messy, find what&rsquo;s common
             </h1>
             
             <p className="text-xl md:text-2xl mb-4 text-gray-600 dark:text-gray-400">
               Make the common ground visible.
             </p>
-            
+            {/*
             <p className="text-base md:text-lg mb-8 text-gray-500 dark:text-gray-500">
               Lightweight tools to help groups align without meetings, accounts, or noise.
-            </p>
+            </p> */}
           </div>
 
           {/* Tool selection */}
           <div>
-            <h2 className="text-2xl font-semibold mb-6 text-center">Choose a tool</h2>
+            <h2 className="text-xl font-semibold mb-6 text-center text-gray-500 dark:text-gray-500">Choose a tool</h2>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
               {tools.map((tool) => (

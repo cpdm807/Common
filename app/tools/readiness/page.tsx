@@ -66,7 +66,7 @@ export default function CreateReadinessPage() {
         </Link>
 
         <div className="flex items-center gap-3 mb-2">
-          <span className="text-4xl">✅</span>
+          <span className="text-4xl">🟢</span>
           <h1 className="text-3xl md:text-4xl font-bold">Pulse</h1>
         </div>
         <p className="text-gray-600 dark:text-gray-400 mb-8">
