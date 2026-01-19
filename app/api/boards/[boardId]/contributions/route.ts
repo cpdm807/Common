@@ -7,8 +7,18 @@ import {
   incrementBoardContributions,
   checkAndUpdateRateLimit,
 } from "@/lib/dynamodb";
-import { generateId, computeSlotCount, validateSlotIndexes } from "@/lib/utils";
-import type { Contribution, AvailabilitySettings } from "@/lib/types";
+import {
+  generateId,
+  computeSlotCount,
+  validateSlotIndexes,
+  validateReadinessValue,
+  roundReadinessToStep,
+} from "@/lib/utils";
+import type {
+  Contribution,
+  AvailabilitySettings,
+  ReadinessSettings,
+} from "@/lib/types";
 
 export async function POST(
   request: NextRequest,
@@ -47,7 +57,7 @@ export async function POST(
       );
     }
 
-    // Validate payload for availability
+    // Validate payload based on tool type
     if (board.toolType === "availability") {
       const slotCount = computeSlotCount(board.settings as AvailabilitySettings);
 
@@ -61,6 +71,29 @@ export async function POST(
           { status: 400 }
         );
       }
+    } else if (board.toolType === "readiness") {
+      const settings = board.settings as ReadinessSettings;
+      if (
+        !body.payload ||
+        typeof body.payload.readiness !== "number"
+      ) {
+        return NextResponse.json(
+          { error: "Invalid readiness value" },
+          { status: 400 }
+        );
+      }
+
+      // Round to nearest step if needed, then validate
+      const rounded = roundReadinessToStep(body.payload.readiness, settings);
+      if (!validateReadinessValue(rounded, settings)) {
+        return NextResponse.json(
+          { error: "Readiness value must be between 0 and 100 and align with step size" },
+          { status: 400 }
+        );
+      }
+
+      // Use rounded value
+      body.payload.readiness = rounded;
     }
 
     // Validate name

@@ -5,6 +5,7 @@ import { createBoard } from "@/lib/dynamodb";
 import {
   generateId,
   validateAvailabilitySettings,
+  validateReadinessSettings,
   computeSlotCount,
 } from "@/lib/utils";
 import type { Board, ToolType } from "@/lib/types";
@@ -14,28 +15,37 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
 
     // Validate tool type
-    if (body.toolType !== "availability") {
+    if (body.toolType !== "availability" && body.toolType !== "readiness") {
       return NextResponse.json(
-        { error: "Only 'availability' tool is supported in v1" },
+        { error: "Unsupported tool type" },
         { status: 400 }
       );
     }
 
-    // Validate settings
-    if (!validateAvailabilitySettings(body.settings)) {
-      return NextResponse.json(
-        { error: "Invalid availability settings" },
-        { status: 400 }
-      );
-    }
+    // Validate settings based on tool type
+    if (body.toolType === "availability") {
+      if (!validateAvailabilitySettings(body.settings)) {
+        return NextResponse.json(
+          { error: "Invalid availability settings" },
+          { status: 400 }
+        );
+      }
 
-    // Validate slot count
-    const slotCount = computeSlotCount(body.settings);
-    if (slotCount > 1000) {
-      return NextResponse.json(
-        { error: "Too many slots (max 1000)" },
-        { status: 400 }
-      );
+      // Validate slot count for availability
+      const slotCount = computeSlotCount(body.settings);
+      if (slotCount > 1000) {
+        return NextResponse.json(
+          { error: "Too many slots (max 1000)" },
+          { status: 400 }
+        );
+      }
+    } else if (body.toolType === "readiness") {
+      if (!validateReadinessSettings(body.settings)) {
+        return NextResponse.json(
+          { error: "Invalid readiness settings" },
+          { status: 400 }
+        );
+      }
     }
 
     // Validate title

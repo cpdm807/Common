@@ -21,7 +21,7 @@ export interface Board {
   createdAt: string; // ISO string
   expiresAtUserVisible: number; // epoch seconds
   expiresAtHard: number; // epoch seconds (TTL)
-  settings: AvailabilitySettings | Record<string, unknown>; // extensible
+  settings: AvailabilitySettings | ReadinessSettings | Record<string, unknown>; // extensible
   stats: {
     views: number;
     contributions: number;
@@ -39,11 +39,24 @@ export interface Contribution {
   createdAt: string;
   name?: string;
   payloadVersion: number;
-  payload: AvailabilityPayload | Record<string, unknown>; // extensible
+  payload: AvailabilityPayload | ReadinessPayload | Record<string, unknown>; // extensible
 }
 
 export interface AvailabilityPayload {
   selectedSlotIndexes: number[];
+}
+
+export interface ReadinessSettings {
+  prompt: string;
+  leftLabel: string;
+  rightLabel: string;
+  scaleMin: number;
+  scaleMax: number;
+  step: number;
+}
+
+export interface ReadinessPayload {
+  readiness: number; // integer 0..100
 }
 
 export interface Feedback {
@@ -72,7 +85,7 @@ export interface BoardPublicData {
   status: BoardStatus;
   createdAt: string;
   expiresAtUserVisible: number;
-  settings: AvailabilitySettings | Record<string, unknown>;
+  settings: AvailabilitySettings | ReadinessSettings | Record<string, unknown>;
   stats: {
     views: number;
     contributions: number;
@@ -80,12 +93,25 @@ export interface BoardPublicData {
   computed: {
     expired: boolean;
     contributorsCount: number;
+    // Availability-specific
     slotCounts?: number[];
     bestWindows?: BestWindow[];
     contributors?: Array<{
       contributionId: string;
       name?: string;
       selectedSlots?: number[];
+    }>;
+    // Readiness-specific
+    averageReadiness?: number;
+    medianReadiness?: number;
+    minReadiness?: number;
+    maxReadiness?: number;
+    belowThresholdCount?: number;
+    distributionBuckets?: Array<{ range: string; count: number }>;
+    readinessContributors?: Array<{
+      contributionId: string;
+      name?: string;
+      readiness: number;
     }>;
   };
 }

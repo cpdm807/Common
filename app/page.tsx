@@ -1,6 +1,7 @@
 // Landing page with integrated tool selection
 
 import Link from "next/link";
+import { toolRegistry } from "@/lib/tools";
 
 interface Tool {
   id: string;
@@ -14,19 +15,19 @@ interface Tool {
 const tools: Tool[] = [
   {
     id: "availability",
-    name: "Availability Heatmap",
-    description: "Find the best time to meet",
-    href: "/tools/availability/create",
+    name: toolRegistry.availability.displayName,
+    description: toolRegistry.availability.description,
+    href: toolRegistry.availability.createRoute,
     available: true,
-    icon: "📅",
+    icon: toolRegistry.availability.icon,
   },
   {
     id: "readiness",
-    name: "Readiness",
-    description: "Check team readiness",
-    href: "#",
-    available: false,
-    icon: "✅",
+    name: toolRegistry.readiness.displayName,
+    description: toolRegistry.readiness.description,
+    href: toolRegistry.readiness.createRoute,
+    available: true,
+    icon: toolRegistry.readiness.icon,
   },
   {
     id: "blockers",

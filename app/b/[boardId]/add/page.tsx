@@ -1,9 +1,14 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import type { BoardPublicData, AvailabilitySettings } from "@/lib/types";
+import type {
+  BoardPublicData,
+  AvailabilitySettings,
+  ReadinessSettings,
+} from "@/lib/types";
+import { getToolConfig } from "@/lib/tools";
 
 export default function AddAvailabilityPage() {
   const params = useParams();
@@ -21,6 +26,7 @@ export default function AddAvailabilityPage() {
   const [isDragging, setIsDragging] = useState(false);
   const [dragMode, setDragMode] = useState<"select" | "deselect">("select");
   const [mouseDownSlot, setMouseDownSlot] = useState<number | null>(null);
+  const [readiness, setReadiness] = useState(0);
 
   useEffect(() => {
     if (!boardId) return;
@@ -38,22 +44,53 @@ export default function AddAvailabilityPage() {
         setBoard(data);
         
         // If editing, prefill data
-        if (editId && data.computed.contributors) {
-          const contributor = data.computed.contributors.find(
-            (c: any) => c.contributionId === editId
-          );
-          
-          if (contributor) {
-            setEditingContributionId(editId);
-            setName(contributor.name || "");
-            if (contributor.selectedSlots) {
-              setSelectedSlots(new Set(contributor.selectedSlots));
+        if (editId) {
+          if (data.toolType === "availability" && data.computed.contributors) {
+            const contributor = data.computed.contributors.find(
+              (c: any) => c.contributionId === editId
+            );
+
+            if (contributor) {
+              setEditingContributionId(editId);
+              setName(contributor.name || "");
+              if (contributor.selectedSlots) {
+                setSelectedSlots(new Set(contributor.selectedSlots));
+              }
+            }
+          } else if (
+            data.toolType === "readiness" &&
+            data.computed.readinessContributors
+          ) {
+            const contributor = data.computed.readinessContributors.find(
+              (c: any) => c.contributionId === editId
+            );
+
+            if (contributor) {
+              setEditingContributionId(editId);
+              setName(contributor.name || "");
+              const settings = data.settings as ReadinessSettings;
+              setReadiness(
+                contributor.readiness ||
+                  Math.round(
+                    (settings.scaleMin + settings.scaleMax) / 2 / settings.step
+                  ) *
+                    settings.step
+              );
             }
           }
         } else {
           // Set default name for new contribution
           const defaultName = `Person ${data.computed.contributorsCount + 1}`;
           setName(defaultName);
+          // Set default readiness to middle of scale
+          if (data.toolType === "readiness") {
+            const settings = data.settings as ReadinessSettings;
+            const midValue =
+              Math.round(
+                (settings.scaleMin + settings.scaleMax) / 2 / settings.step
+              ) * settings.step;
+            setReadiness(midValue);
+          }
         }
         
         setLoading(false);
@@ -64,15 +101,20 @@ export default function AddAvailabilityPage() {
       });
   }, [boardId]);
 
-  const handleSlotToggle = (slotIdx: number) => {
-    const newSelected = new Set(selectedSlots);
-    if (newSelected.has(slotIdx)) {
-      newSelected.delete(slotIdx);
-    } else {
-      newSelected.add(slotIdx);
-    }
-    setSelectedSlots(newSelected);
-  };
+  const handleSlotToggle = useCallback(
+    (slotIdx: number) => {
+      setSelectedSlots((prev) => {
+        const newSelected = new Set(prev);
+        if (newSelected.has(slotIdx)) {
+          newSelected.delete(slotIdx);
+        } else {
+          newSelected.add(slotIdx);
+        }
+        return newSelected;
+      });
+    },
+    []
+  );
 
   const handleSlotMouseDown = (slotIdx: number) => {
     setMouseDownSlot(slotIdx);
@@ -122,21 +164,21 @@ export default function AddAvailabilityPage() {
     setSelectedSlots(newSelected);
   };
 
-  const handleMouseUp = () => {
+  const handleMouseUp = useCallback(() => {
     // If we clicked without dragging, toggle the slot
     if (mouseDownSlot !== null && !isDragging) {
       handleSlotToggle(mouseDownSlot);
     }
     setIsDragging(false);
     setMouseDownSlot(null);
-  };
+  }, [mouseDownSlot, isDragging, handleSlotToggle]);
 
   useEffect(() => {
     document.addEventListener("mouseup", handleMouseUp);
     return () => {
       document.removeEventListener("mouseup", handleMouseUp);
     };
-  }, []);
+  }, [handleMouseUp]);
 
   const selectRow = (slotIdx: number) => {
     if (!board) return;
@@ -190,7 +232,7 @@ export default function AddAvailabilityPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (selectedSlots.size === 0) {
+    if (board?.toolType === "availability" && selectedSlots.size === 0) {
       alert("Please select at least one time slot");
       return;
     }
@@ -202,17 +244,28 @@ export default function AddAvailabilityPage() {
       const url = editingContributionId
         ? `/api/boards/${boardId}/contributions/${editingContributionId}`
         : `/api/boards/${boardId}/contributions`;
-      
+
       const method = editingContributionId ? "PUT" : "POST";
-      
+
+      let payload: any;
+      if (board?.toolType === "availability") {
+        payload = {
+          selectedSlotIndexes: Array.from(selectedSlots).sort((a, b) => a - b),
+        };
+      } else if (board?.toolType === "readiness") {
+        payload = {
+          readiness,
+        };
+      } else {
+        throw new Error("Unsupported tool type");
+      }
+
       const response = await fetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name: name || undefined,
-          payload: {
-            selectedSlotIndexes: Array.from(selectedSlots).sort((a, b) => a - b),
-          },
+          payload,
         }),
       });
 
@@ -264,7 +317,7 @@ export default function AddAvailabilityPage() {
     );
   }
 
-  const settings = board.settings as AvailabilitySettings;
+  const toolConfig = getToolConfig(board.toolType);
 
   return (
     <div className="min-h-screen px-4 py-8 md:py-12">
@@ -277,84 +330,314 @@ export default function AddAvailabilityPage() {
         </Link>
 
         <div className="flex items-center gap-3 mb-2">
-          <span className="text-4xl">📅</span>
+          <span className="text-4xl">{toolConfig.icon}</span>
           <h1 className="text-2xl md:text-3xl font-bold">
-            {editingContributionId ? "Edit your availability" : "Add your availability"}
+            {editingContributionId
+              ? `Edit your ${board.toolType === "readiness" ? "pulse" : "availability"}`
+              : `Add your ${board.toolType === "readiness" ? "pulse" : "availability"}`}
           </h1>
         </div>
         <p className="text-gray-600 dark:text-gray-400 mb-8">
-          {board.title || "Availability"}
+          {board.title || toolConfig.displayName}
         </p>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Name input */}
-          <div>
-            <label htmlFor="name" className="block text-sm font-medium mb-2 text-gray-900 dark:text-gray-100">
-              Your name (optional)
-            </label>
-            <input
-              type="text"
-              id="name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              onFocus={(e) => e.target.select()}
-              maxLength={50}
-              className="w-full md:w-96 px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
+        {board.toolType === "availability" && (
+          <AvailabilityAddForm
+            board={board}
+            boardId={boardId}
+            name={name}
+            setName={setName}
+            selectedSlots={selectedSlots}
+            setSelectedSlots={setSelectedSlots}
+            isDragging={isDragging}
+            dragMode={dragMode}
+            mouseDownSlot={mouseDownSlot}
+            setMouseDownSlot={setMouseDownSlot}
+            setIsDragging={setIsDragging}
+            setDragMode={setDragMode}
+            handleSlotToggle={handleSlotToggle}
+            handleSlotMouseDown={handleSlotMouseDown}
+            handleSlotMouseEnter={handleSlotMouseEnter}
+            handleMouseUp={handleMouseUp}
+            selectRow={selectRow}
+            selectColumn={selectColumn}
+            handleSubmit={handleSubmit}
+            submitting={submitting}
+            error={error}
+          />
+        )}
 
-          {/* Instructions */}
-          <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-            <p className="text-sm text-gray-900 dark:text-gray-100">
-              {'ontouchstart' in window ? (
-                <>
-                  <strong>Tap</strong> individual slots to select or deselect. Tap row/column headers to select entire rows/columns.
-                </>
-              ) : (
-                <>
-                  <strong>Click and drag</strong> to select multiple slots, or click individual slots to toggle. Click row/column headers to select entire rows/columns.
-                </>
-              )}
-            </p>
-          </div>
-
-          {/* Availability grid */}
-          <div className="mb-6">
-            <h2 className="font-semibold mb-3 text-gray-900 dark:text-gray-100">Select your availability</h2>
-            <AvailabilityGrid
-              settings={settings}
-              selectedSlots={selectedSlots}
-              onSlotToggle={handleSlotToggle}
-              onSlotMouseDown={handleSlotMouseDown}
-              onSlotMouseEnter={handleSlotMouseEnter}
-              onSelectRow={selectRow}
-              onSelectColumn={selectColumn}
-            />
-          </div>
-
-          {/* Selected count */}
-          <div className="text-sm text-gray-600 dark:text-gray-400">
-            {selectedSlots.size} slot{selectedSlots.size !== 1 ? "s" : ""} selected
-          </div>
-
-          {/* Error message */}
-          {error && (
-            <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-red-800 dark:text-red-400 text-sm">
-              {error}
-            </div>
-          )}
-
-          {/* Submit button */}
-          <button
-            type="submit"
-            disabled={submitting || selectedSlots.size === 0}
-            className="w-full md:w-auto bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-semibold px-8 py-3 rounded-lg transition-colors"
-          >
-            {submitting ? "Submitting..." : "Submit availability"}
-          </button>
-        </form>
+        {board.toolType === "readiness" && (
+          <ReadinessAddForm
+            board={board}
+            boardId={boardId}
+            name={name}
+            setName={setName}
+            readiness={readiness}
+            setReadiness={setReadiness}
+            handleSubmit={handleSubmit}
+            submitting={submitting}
+            error={error}
+          />
+        )}
       </div>
     </div>
+  );
+}
+
+// Availability add form component
+function AvailabilityAddForm({
+  board,
+  boardId,
+  name,
+  setName,
+  selectedSlots,
+  setSelectedSlots,
+  isDragging,
+  dragMode,
+  mouseDownSlot,
+  setMouseDownSlot,
+  setIsDragging,
+  setDragMode,
+  handleSlotToggle,
+  handleSlotMouseDown,
+  handleSlotMouseEnter,
+  handleMouseUp,
+  selectRow,
+  selectColumn,
+  handleSubmit,
+  submitting,
+  error,
+}: {
+  board: BoardPublicData;
+  boardId: string;
+  name: string;
+  setName: (name: string) => void;
+  selectedSlots: Set<number>;
+  setSelectedSlots: (slots: Set<number>) => void;
+  isDragging: boolean;
+  dragMode: "select" | "deselect";
+  mouseDownSlot: number | null;
+  setMouseDownSlot: (slot: number | null) => void;
+  setIsDragging: (dragging: boolean) => void;
+  setDragMode: (mode: "select" | "deselect") => void;
+  handleSlotToggle: (slotIdx: number) => void;
+  handleSlotMouseDown: (slotIdx: number) => void;
+  handleSlotMouseEnter: (slotIdx: number) => void;
+  handleMouseUp: () => void;
+  selectRow: (slotIdx: number) => void;
+  selectColumn: (dayIndex: number) => void;
+  handleSubmit: (e: React.FormEvent) => void;
+  submitting: boolean;
+  error: string | null;
+}) {
+  const settings = board.settings as AvailabilitySettings;
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-6">
+      {/* Name input */}
+      <div>
+        <label
+          htmlFor="name"
+          className="block text-sm font-medium mb-2 text-gray-900 dark:text-gray-100"
+        >
+          Your name (optional)
+        </label>
+        <input
+          type="text"
+          id="name"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          onFocus={(e) => e.target.select()}
+          maxLength={50}
+          className="w-full md:w-96 px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
+      </div>
+
+      {/* Instructions */}
+      <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+        <p className="text-sm text-gray-900 dark:text-gray-100">
+          {"ontouchstart" in window ? (
+            <>
+              <strong>Tap</strong> individual slots to select or deselect. Tap
+              row/column headers to select entire rows/columns.
+            </>
+          ) : (
+            <>
+              <strong>Click and drag</strong> to select multiple slots, or
+              click individual slots to toggle. Click row/column headers to
+              select entire rows/columns.
+            </>
+          )}
+        </p>
+      </div>
+
+      {/* Availability grid */}
+      <div className="mb-6">
+        <h2 className="font-semibold mb-3 text-gray-900 dark:text-gray-100">
+          Select your availability
+        </h2>
+        <AvailabilityGrid
+          settings={settings}
+          selectedSlots={selectedSlots}
+          onSlotToggle={handleSlotToggle}
+          onSlotMouseDown={handleSlotMouseDown}
+          onSlotMouseEnter={handleSlotMouseEnter}
+          onSelectRow={selectRow}
+          onSelectColumn={selectColumn}
+        />
+      </div>
+
+      {/* Selected count */}
+      <div className="text-sm text-gray-600 dark:text-gray-400">
+        {selectedSlots.size} slot{selectedSlots.size !== 1 ? "s" : ""} selected
+      </div>
+
+      {/* Error message */}
+      {error && (
+        <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-red-800 dark:text-red-400 text-sm">
+          {error}
+        </div>
+      )}
+
+      {/* Submit button */}
+      <button
+        type="submit"
+        disabled={submitting || selectedSlots.size === 0}
+        className="w-full md:w-auto bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-semibold px-8 py-3 rounded-lg transition-colors"
+      >
+        {submitting ? "Submitting..." : "Submit availability"}
+      </button>
+    </form>
+  );
+}
+
+// Readiness add form component
+function ReadinessAddForm({
+  board,
+  boardId,
+  name,
+  setName,
+  readiness,
+  setReadiness,
+  handleSubmit,
+  submitting,
+  error,
+}: {
+  board: BoardPublicData;
+  boardId: string;
+  name: string;
+  setName: (name: string) => void;
+  readiness: number;
+  setReadiness: (readiness: number) => void;
+  handleSubmit: (e: React.FormEvent) => void;
+  submitting: boolean;
+  error: string | null;
+}) {
+  const settings = board.settings as ReadinessSettings;
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-6">
+      {/* Name input */}
+      <div>
+        <label
+          htmlFor="name"
+          className="block text-sm font-medium mb-2 text-gray-900 dark:text-gray-100"
+        >
+          Your name (optional)
+        </label>
+        <input
+          type="text"
+          id="name"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          onFocus={(e) => e.target.select()}
+          maxLength={50}
+          className="w-full md:w-96 px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
+      </div>
+
+      {/* Prompt */}
+      {settings.prompt && (
+        <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+          <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+            {settings.prompt}
+          </p>
+        </div>
+      )}
+
+      {/* Readiness input */}
+      <div>
+        <label
+          htmlFor="readiness"
+          className="block text-sm font-medium mb-3 text-gray-900 dark:text-gray-100"
+        >
+          {readiness}
+          {settings.scaleMax === 100 ? "%" : ""}
+        </label>
+        <div className="space-y-3">
+          <div className="flex items-center justify-between mb-2 text-xs text-gray-600 dark:text-gray-400">
+            <span>{settings.leftLabel}</span>
+            <span>{settings.rightLabel}</span>
+          </div>
+          <div className="relative">
+            <div className="absolute inset-0 h-2 bg-gradient-to-r from-red-400 via-orange-400 via-yellow-400 via-lime-500 to-green-500 dark:from-red-600 dark:via-orange-600 dark:via-yellow-600 dark:via-lime-600 dark:to-green-600 rounded-lg pointer-events-none" />
+            <input
+              type="range"
+              id="readiness"
+              min={settings.scaleMin}
+              max={settings.scaleMax}
+              step={settings.step}
+              value={readiness}
+              onChange={(e) => setReadiness(parseInt(e.target.value))}
+              className="relative w-full h-2 bg-transparent rounded-lg appearance-none cursor-pointer"
+              style={{
+                background: "transparent",
+              }}
+            />
+          </div>
+          <div className="flex items-center gap-3">
+            <input
+              type="number"
+              min={settings.scaleMin}
+              max={settings.scaleMax}
+              step={settings.step}
+              value={readiness}
+              onChange={(e) => {
+                const val = parseInt(e.target.value);
+                if (
+                  !isNaN(val) &&
+                  val >= settings.scaleMin &&
+                  val <= settings.scaleMax
+                ) {
+                  setReadiness(Math.round(val / settings.step) * settings.step);
+                }
+              }}
+              className="w-24 px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 dark:text-gray-100"
+            />
+            {settings.scaleMax === 100 && (
+              <span className="text-sm text-gray-600 dark:text-gray-400">%</span>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Error message */}
+      {error && (
+        <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-red-800 dark:text-red-400 text-sm">
+          {error}
+        </div>
+      )}
+
+      {/* Submit button */}
+      <button
+        type="submit"
+        disabled={submitting}
+        className="w-full md:w-auto bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-semibold px-8 py-3 rounded-lg transition-colors"
+      >
+        {submitting ? "Submitting..." : "Submit pulse"}
+      </button>
+    </form>
   );
 }
 

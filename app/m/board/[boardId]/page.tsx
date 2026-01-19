@@ -3,6 +3,7 @@
 import { Metadata } from "next";
 import Link from "next/link";
 import { getBoard } from "@/lib/dynamodb";
+import { getToolConfig } from "@/lib/tools";
 
 export async function generateMetadata({
   params,
@@ -16,12 +17,12 @@ export async function generateMetadata({
   const boardUrl = `${baseUrl}/b/${boardId}`;
   const ogImageUrl = `${baseUrl}/og.png`;
 
-  const title = board?.title
-    ? `Common – ${board.title}`
-    : "Common – Availability";
-  const description = board?.title
-    ? `${board.title}: Find the common time. Add your availability.`
-    : "Find the common time. Add your availability.";
+  const toolConfig = board
+    ? getToolConfig(board.toolType)
+    : getToolConfig("availability");
+
+  const title = toolConfig.metadataTitle(board?.title);
+  const description = toolConfig.metadataDescription(board?.title);
 
   return {
     title,
@@ -59,14 +60,18 @@ export default async function MetadataPage({
 
   const boardUrl = `/b/${boardId}`;
 
+  const toolConfig = board
+    ? getToolConfig(board.toolType)
+    : getToolConfig("availability");
+
   return (
     <div className="min-h-screen flex items-center justify-center px-4">
       <div className="text-center max-w-md">
         <h1 className="text-2xl font-bold mb-4">
-          {board?.title || "Availability Board"}
+          {board?.title || toolConfig.displayName}
         </h1>
         <p className="text-gray-600 dark:text-gray-400 mb-6">
-          Find the common time. Add your availability.
+          {toolConfig.metadataDescription(board?.title)}
         </p>
         <Link
           href={boardUrl}

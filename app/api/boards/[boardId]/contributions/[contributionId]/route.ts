@@ -2,8 +2,16 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { getBoard, updateContribution } from "@/lib/dynamodb";
-import { computeSlotCount, validateSlotIndexes } from "@/lib/utils";
-import type { AvailabilitySettings } from "@/lib/types";
+import {
+  computeSlotCount,
+  validateSlotIndexes,
+  validateReadinessValue,
+  roundReadinessToStep,
+} from "@/lib/utils";
+import type {
+  AvailabilitySettings,
+  ReadinessSettings,
+} from "@/lib/types";
 
 export async function PUT(
   request: NextRequest,
@@ -33,7 +41,7 @@ export async function PUT(
       return NextResponse.json({ error: "Board is closed" }, { status: 403 });
     }
 
-    // Validate payload for availability
+    // Validate payload based on tool type
     if (board.toolType === "availability") {
       const slotCount = computeSlotCount(board.settings as AvailabilitySettings);
 
@@ -47,6 +55,29 @@ export async function PUT(
           { status: 400 }
         );
       }
+    } else if (board.toolType === "readiness") {
+      const settings = board.settings as ReadinessSettings;
+      if (
+        !body.payload ||
+        typeof body.payload.readiness !== "number"
+      ) {
+        return NextResponse.json(
+          { error: "Invalid readiness value" },
+          { status: 400 }
+        );
+      }
+
+      // Round to nearest step if needed, then validate
+      const rounded = roundReadinessToStep(body.payload.readiness, settings);
+      if (!validateReadinessValue(rounded, settings)) {
+        return NextResponse.json(
+          { error: "Readiness value must be between 0 and 100 and align with step size" },
+          { status: 400 }
+        );
+      }
+
+      // Use rounded value
+      body.payload.readiness = rounded;
     }
 
     // Validate name

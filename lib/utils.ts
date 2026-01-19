@@ -1,6 +1,10 @@
 // Utility functions for validation, computation, and helpers
 
-import type { AvailabilitySettings, BestWindow } from "./types";
+import type {
+  AvailabilitySettings,
+  BestWindow,
+  ReadinessSettings,
+} from "./types";
 
 // ID generation
 export function generateId(length = 12): string {
@@ -56,6 +60,49 @@ export function validateSlotIndexes(
 export function validateComment(comment: unknown): boolean {
   if (typeof comment !== "string") return false;
   return comment.length <= 280;
+}
+
+export function validateReadinessSettings(
+  settings: unknown
+): settings is ReadinessSettings {
+  if (!settings || typeof settings !== "object") return false;
+  const s = settings as Record<string, unknown>;
+
+  return (
+    typeof s.prompt === "string" &&
+    s.prompt.length <= 200 &&
+    typeof s.leftLabel === "string" &&
+    s.leftLabel.length <= 50 &&
+    typeof s.rightLabel === "string" &&
+    s.rightLabel.length <= 50 &&
+    typeof s.scaleMin === "number" &&
+    s.scaleMin >= 0 &&
+    typeof s.scaleMax === "number" &&
+    s.scaleMax > s.scaleMin &&
+    s.scaleMax <= 1000 &&
+    typeof s.step === "number" &&
+    s.step > 0 &&
+    s.step <= (s.scaleMax as number) - (s.scaleMin as number)
+  );
+}
+
+export function validateReadinessValue(
+  value: unknown,
+  settings: ReadinessSettings
+): boolean {
+  if (typeof value !== "number") return false;
+  if (!Number.isInteger(value)) return false;
+  if (value < settings.scaleMin || value > settings.scaleMax) return false;
+  // Round to nearest step
+  const rounded = Math.round(value / settings.step) * settings.step;
+  return Math.abs(value - rounded) < 0.01; // Allow small floating point errors
+}
+
+export function roundReadinessToStep(
+  value: number,
+  settings: ReadinessSettings
+): number {
+  return Math.round(value / settings.step) * settings.step;
 }
 
 // Heatmap computation
@@ -214,4 +261,95 @@ export function formatWindowDescription(
   const endTime = slotIndexToTimeString(window.endSlotIndex, settings);
 
   return `${dayLabel} ${startTime}–${endTime} (${window.availableCount}/${contributorsCount} people)`;
+}
+
+// Readiness aggregation functions
+export function aggregateReadiness(
+  contributions: Array<{ payload: { readiness?: number } }>,
+  settings?: { scaleMin: number; scaleMax: number }
+): {
+  average: number;
+  median: number;
+  min: number;
+  max: number;
+  belowThresholdCount: number;
+  distributionBuckets: Array<{ range: string; count: number }>;
+  values: number[];
+} {
+  const scaleMin = settings?.scaleMin ?? 0;
+  const scaleMax = settings?.scaleMax ?? 100;
+  const readinessValues: number[] = [];
+
+  for (const contrib of contributions) {
+    const readiness = contrib.payload.readiness;
+    if (
+      typeof readiness === "number" &&
+      readiness >= scaleMin &&
+      readiness <= scaleMax
+    ) {
+      readinessValues.push(readiness);
+    }
+  }
+
+  // Create 5 buckets based on scale range
+  const range = scaleMax - scaleMin;
+  const bucketSize = range / 5;
+  const buckets: Array<{ range: string; count: number }> = [];
+  for (let i = 0; i < 5; i++) {
+    const bucketMin = Math.round(scaleMin + i * bucketSize);
+    const bucketMax =
+      i === 4
+        ? scaleMax
+        : Math.round(scaleMin + (i + 1) * bucketSize) - 1;
+    buckets.push({
+      range: `${bucketMin}-${bucketMax}`,
+      count: 0,
+    });
+  }
+
+  if (readinessValues.length === 0) {
+    return {
+      average: scaleMin,
+      median: scaleMin,
+      min: scaleMin,
+      max: scaleMin,
+      belowThresholdCount: 0,
+      distributionBuckets: buckets,
+      values: [],
+    };
+  }
+
+  // Calculate statistics
+  const sorted = [...readinessValues].sort((a, b) => a - b);
+  const sum = readinessValues.reduce((a, b) => a + b, 0);
+  const average = Math.round(sum / readinessValues.length);
+  const median =
+    sorted.length % 2 === 0
+      ? Math.round(
+          (sorted[sorted.length / 2 - 1] + sorted[sorted.length / 2]) / 2
+        )
+      : sorted[Math.floor(sorted.length / 2)];
+  const min = sorted[0];
+  const max = sorted[sorted.length - 1];
+  // Threshold is 60% of the way from min to max
+  const threshold = scaleMin + (scaleMax - scaleMin) * 0.6;
+  const belowThresholdCount = readinessValues.filter((v) => v < threshold).length;
+
+  // Distribute values into buckets
+  for (const value of readinessValues) {
+    const normalized = (value - scaleMin) / range;
+    let bucketIndex = Math.floor(normalized * 5);
+    if (bucketIndex >= 5) bucketIndex = 4; // Handle edge case
+    buckets[bucketIndex].count++;
+  }
+
+  return {
+    average,
+    median,
+    min,
+    max,
+    belowThresholdCount,
+    distributionBuckets: buckets,
+    values: readinessValues,
+  };
 }

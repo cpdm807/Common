@@ -6,8 +6,13 @@ import {
   computeSlotCount,
   aggregateSlotCounts,
   findBestWindows,
+  aggregateReadiness,
 } from "@/lib/utils";
-import type { BoardPublicData, AvailabilitySettings } from "@/lib/types";
+import type {
+  BoardPublicData,
+  AvailabilitySettings,
+  ReadinessSettings,
+} from "@/lib/types";
 
 export async function GET(
   request: NextRequest,
@@ -55,26 +60,57 @@ export async function GET(
     const contributions = await getBoardContributions(boardId);
     const contributorsCount = contributions.length;
 
-    // Compute aggregated data for availability boards
+    // Compute aggregated data based on tool type
     let slotCounts: number[] | undefined;
     let bestWindows;
     let contributors;
+    let averageReadiness: number | undefined;
+    let medianReadiness: number | undefined;
+    let minReadiness: number | undefined;
+    let maxReadiness: number | undefined;
+    let belowThresholdCount: number | undefined;
+    let distributionBuckets: Array<{ range: string; count: number }> | undefined;
+    let readinessContributors:
+      | Array<{ contributionId: string; name?: string; readiness: number }>
+      | undefined;
 
     if (board.toolType === "availability") {
       const slotCount = computeSlotCount(board.settings as AvailabilitySettings);
       slotCounts = aggregateSlotCounts(slotCount, contributions);
-      
+
       if (contributorsCount > 0) {
         bestWindows = findBestWindows(
           slotCounts,
           board.settings as AvailabilitySettings
         );
-        
+
         // Include contributor info
         contributors = contributions.map((c) => ({
           contributionId: c.contributionId,
           name: c.name || "Anonymous",
-          selectedSlots: (c.payload as { selectedSlotIndexes?: number[] })?.selectedSlotIndexes,
+          selectedSlots: (c.payload as { selectedSlotIndexes?: number[] })
+            ?.selectedSlotIndexes,
+        }));
+      }
+    } else if (board.toolType === "readiness") {
+      if (contributorsCount > 0) {
+        const readinessSettings = board.settings as ReadinessSettings;
+        const aggregated = aggregateReadiness(contributions, {
+          scaleMin: readinessSettings.scaleMin,
+          scaleMax: readinessSettings.scaleMax,
+        });
+        averageReadiness = aggregated.average;
+        medianReadiness = aggregated.median;
+        minReadiness = aggregated.min;
+        maxReadiness = aggregated.max;
+        belowThresholdCount = aggregated.belowThresholdCount;
+        distributionBuckets = aggregated.distributionBuckets;
+
+        // Include contributor info
+        readinessContributors = contributions.map((c) => ({
+          contributionId: c.contributionId,
+          name: c.name,
+          readiness: (c.payload as { readiness?: number })?.readiness || 0,
         }));
       }
     }
@@ -94,6 +130,13 @@ export async function GET(
         slotCounts,
         bestWindows,
         contributors,
+        averageReadiness,
+        medianReadiness,
+        minReadiness,
+        maxReadiness,
+        belowThresholdCount,
+        distributionBuckets,
+        readinessContributors,
       },
     };
 
