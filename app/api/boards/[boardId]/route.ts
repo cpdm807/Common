@@ -99,7 +99,11 @@ export async function GET(
     } else if (board.toolType === "readiness") {
       if (contributorsCount > 0) {
         const readinessSettings = board.settings as ReadinessSettings;
-        const aggregated = aggregateReadiness(contributions, {
+        // Type-narrow contributions for readiness boards
+        const readinessContributions = contributions.map((c) => ({
+          payload: c.payload as { readiness?: number },
+        }));
+        const aggregated = aggregateReadiness(readinessContributions, {
           scaleMin: readinessSettings.scaleMin,
           scaleMax: readinessSettings.scaleMax,
         });
