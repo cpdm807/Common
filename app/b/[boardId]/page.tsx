@@ -378,7 +378,8 @@ function Heatmap({
   const getColor = (count: number) => {
     if (count === 0) return "bg-gray-100 dark:bg-gray-800";
     const ratio = count / contributorsCount;
-    if (ratio >= 0.75) return "bg-green-500 dark:bg-green-600";
+    if (ratio === 1.0) return "bg-green-500 dark:bg-green-600";
+    if (ratio >= 0.75) return "bg-lime-500 dark:bg-lime-600";
     if (ratio >= 0.5) return "bg-yellow-400 dark:bg-yellow-600";
     if (ratio >= 0.25) return "bg-orange-400 dark:bg-orange-600";
     return "bg-red-400 dark:bg-red-600";
@@ -468,8 +469,12 @@ function Heatmap({
               <span>50-75%</span>
             </div>
             <div className="flex items-center gap-2 text-gray-900 dark:text-gray-100">
+              <div className="w-4 h-4 bg-lime-500 dark:bg-lime-600 rounded" />
+              <span>75-99%</span>
+            </div>
+            <div className="flex items-center gap-2 text-gray-900 dark:text-gray-100">
               <div className="w-4 h-4 bg-green-500 dark:bg-green-600 rounded" />
-              <span>≥ 75%</span>
+              <span>100%</span>
             </div>
           </div>
         </div>
