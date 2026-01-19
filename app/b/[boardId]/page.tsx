@@ -304,7 +304,7 @@ function AvailabilityBoardContent({
           <div className="mb-8">
             <div className="mb-4">
               <h2 className="font-semibold text-lg mb-2 text-gray-900 dark:text-gray-100">
-                Availability heatmap
+                Availability
               </h2>
               <p className="text-sm text-gray-600 dark:text-gray-400">
                 Click on any cell to see who's available
@@ -409,6 +409,59 @@ function ReadinessBoardContent({
 
   return (
     <>
+      {/* Contributors list */}
+      {!board.computed.expired &&
+        board.computed.readinessContributors &&
+        board.computed.readinessContributors.length > 0 && (
+          <div className="mb-6">
+            <h2 className="font-semibold text-lg mb-3 text-gray-900 dark:text-gray-100">
+              Contributors
+            </h2>
+            <div className="space-y-2">
+              {board.computed.readinessContributors.map((contributor, idx) => (
+                <div
+                  key={contributor.contributionId}
+                  className="flex items-center justify-between px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg"
+                >
+                  <span className="text-gray-900 dark:text-gray-100">
+                    {contributor.name || `Person ${idx + 1}`}
+                  </span>
+                  <div className="flex items-center gap-4">
+                    <span
+                      className={`font-medium ${getReadinessTextColor(
+                        contributor.readiness,
+                        settings.scaleMin,
+                        settings.scaleMax
+                      )}`}
+                    >
+                      {contributor.readiness}
+                      {settings.scaleMax === 100 ? "%" : ""}
+                    </span>
+                    <Link
+                      href={`/b/${boardId}/add?edit=${contributor.contributionId}`}
+                      className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
+                    >
+                      Edit
+                    </Link>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+      {/* Add your pulse button */}
+      {!board.computed.expired && (
+        <div className="mb-8">
+          <Link
+            href={`/b/${boardId}/add`}
+            className="inline-block bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-3 rounded-lg transition-colors"
+          >
+            Add your pulse
+          </Link>
+        </div>
+      )}
+
       {/* Primary summary */}
       {!board.computed.expired &&
         board.computed.averageReadiness !== undefined && (
@@ -602,58 +655,6 @@ function ReadinessBoardContent({
           </div>
         )}
 
-      {/* Add your pulse button */}
-      {!board.computed.expired && (
-        <div className="mb-8">
-          <Link
-            href={`/b/${boardId}/add`}
-            className="inline-block bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-3 rounded-lg transition-colors"
-          >
-            Add your pulse
-          </Link>
-        </div>
-      )}
-
-      {/* Contributors list */}
-      {!board.computed.expired &&
-        board.computed.readinessContributors &&
-        board.computed.readinessContributors.length > 0 && (
-          <div className="mb-6">
-            <h2 className="font-semibold text-lg mb-3 text-gray-900 dark:text-gray-100">
-              Contributors
-            </h2>
-            <div className="space-y-2">
-              {board.computed.readinessContributors.map((contributor, idx) => (
-                <div
-                  key={contributor.contributionId}
-                  className="flex items-center justify-between px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg"
-                >
-                  <span className="text-gray-900 dark:text-gray-100">
-                    {contributor.name || `Person ${idx + 1}`}
-                  </span>
-                  <div className="flex items-center gap-4">
-                    <span
-                      className={`font-medium ${getReadinessTextColor(
-                        contributor.readiness,
-                        settings.scaleMin,
-                        settings.scaleMax
-                      )}`}
-                    >
-                      {contributor.readiness}
-                      {settings.scaleMax === 100 ? "%" : ""}
-                    </span>
-                    <Link
-                      href={`/b/${boardId}/add?edit=${contributor.contributionId}`}
-                      className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
-                    >
-                      Edit
-                    </Link>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
     </>
   );
 }

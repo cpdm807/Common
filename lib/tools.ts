@@ -13,7 +13,7 @@ export interface ToolConfig {
 
 export const toolRegistry: Record<ToolType, ToolConfig> = {
   availability: {
-    displayName: "Availability Heatmap",
+    displayName: "Availability",
     createRoute: "/tools/availability/create",
     icon: "📅",
     description: "Find the best time to meet",
