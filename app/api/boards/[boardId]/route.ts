@@ -76,7 +76,11 @@ export async function GET(
 
     if (board.toolType === "availability") {
       const slotCount = computeSlotCount(board.settings as AvailabilitySettings);
-      slotCounts = aggregateSlotCounts(slotCount, contributions);
+      // Type-narrow contributions for availability boards
+      const availabilityContributions = contributions.map((c) => ({
+        payload: c.payload as { selectedSlotIndexes?: number[] },
+      }));
+      slotCounts = aggregateSlotCounts(slotCount, availabilityContributions);
 
       if (contributorsCount > 0) {
         bestWindows = findBestWindows(
