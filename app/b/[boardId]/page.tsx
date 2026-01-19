@@ -155,7 +155,7 @@ export default function BoardPage() {
           board.computed.bestWindows &&
           board.computed.bestWindows.length > 0 && (
             <div className="mb-8 p-6 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-              <h2 className="font-semibold mb-3 text-lg">Best windows</h2>
+              <h2 className="font-semibold mb-3 text-lg text-gray-900 dark:text-gray-100">Best windows</h2>
               <div className="space-y-2">
                 {board.computed.bestWindows.slice(0, 3).map((window, idx) => {
                   const dayLabel = getDayLabel(window.dayIndex, settings);
@@ -190,12 +190,12 @@ export default function BoardPage() {
         {/* Contributors */}
         {!board.computed.expired && board.computed.contributors && board.computed.contributors.length > 0 && (
           <div className="mb-4">
-            <h2 className="font-semibold text-lg mb-3">Contributors</h2>
+            <h2 className="font-semibold text-lg mb-3 text-gray-900 dark:text-gray-100">Contributors</h2>
             <div className="flex flex-wrap gap-3">
               {board.computed.contributors.map((contributor) => (
                 <div
                   key={contributor.contributionId}
-                  className="flex items-center gap-2 px-4 py-2 bg-gray-100 dark:bg-gray-800 rounded-lg text-gray-900 dark:text-gray-100"
+                  className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg text-gray-900 dark:text-gray-100"
                 >
                   <span className="font-medium">{contributor.name}</span>
                   <Link
@@ -226,7 +226,7 @@ export default function BoardPage() {
         {!board.computed.expired && board.computed.slotCounts && board.computed.contributors && (
           <div className="mb-8">
             <div className="mb-4">
-              <h2 className="font-semibold text-lg mb-2">Availability heatmap</h2>
+              <h2 className="font-semibold text-lg mb-2 text-gray-900 dark:text-gray-100">Availability heatmap</h2>
               <p className="text-sm text-gray-600 dark:text-gray-400">
                 Click on any cell to see who's available
               </p>
@@ -244,12 +244,12 @@ export default function BoardPage() {
         {/* Contributors list */}
         {!board.computed.expired && board.computed.contributors && board.computed.contributors.length > 0 && (
           <div className="mb-6">
-            <h2 className="font-semibold text-lg mb-3">Contributors</h2>
+            <h2 className="font-semibold text-lg mb-3 text-gray-900 dark:text-gray-100">Contributors</h2>
             <div className="flex flex-wrap gap-3">
               {board.computed.contributors.map((contributor) => (
                 <div
                   key={contributor.contributionId}
-                  className="flex items-center gap-2 px-4 py-2 bg-gray-100 dark:bg-gray-800 rounded-lg"
+                  className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg text-gray-900 dark:text-gray-100"
                 >
                   <span className="font-medium">{contributor.name}</span>
                   <Link
@@ -265,7 +265,7 @@ export default function BoardPage() {
         )}
 
         {/* Actions */}
-        {!board.computed.expired && (
+        {!board.computed.expired && board.computed.contributors && board.computed.contributors.length > 0 &&  (
           <div className="mb-8">
             <Link
               href={`/b/${boardId}/add`}
@@ -277,19 +277,19 @@ export default function BoardPage() {
         )}
 
         {/* Share link */}
-        <div className="mb-8 p-6 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg">
-          <h2 className="font-semibold mb-3">Share this board</h2>
+        <div className="mb-8 p-6 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-800 rounded-lg">
+          <h2 className="font-semibold mb-3 text-gray-900 dark:text-gray-100">Share this board</h2>
           
           <div className="flex gap-2">
             <input
               type="text"
               value={boardUrl}
               readOnly
-              className="flex-1 px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded text-sm font-mono"
+              className="flex-1 px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded text-sm font-mono text-gray-900 dark:text-gray-100"
             />
             <button
               onClick={() => handleCopy(boardUrl, false)}
-              className="px-4 py-2 bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 rounded font-medium transition-colors"
+              className="px-4 py-2 bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 rounded font-medium transition-colors text-gray-900 dark:text-gray-100"
             >
               {copied ? "Copied!" : "Copy link"}
             </button>
@@ -411,7 +411,7 @@ function Heatmap({
             {Array.from({ length: days }).map((_, dayIdx) => (
             <div
               key={dayIdx}
-              className="text-xs font-medium text-center py-2 sticky top-0 bg-white dark:bg-gray-950 z-10 text-gray-900 dark:text-gray-100"
+              className="text-xs font-medium text-center py-2 sticky top-0 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 z-10 border-b border-gray-300 dark:border-gray-700"
             >
               {getDayLabel(dayIdx, settings)}
             </div>
@@ -419,9 +419,8 @@ function Heatmap({
 
             {/* Time rows */}
             {timeLabels.map((time, slotIdx) => (
-              <>
+              <div key={`row-${slotIdx}`} className="contents">
                 <div
-                  key={`time-${slotIdx}`}
                   className="text-xs text-right pr-2 py-1 text-gray-600 dark:text-gray-400"
                 >
                   {time}
@@ -429,40 +428,46 @@ function Heatmap({
                 {Array.from({ length: days }).map((_, dayIdx) => {
                   const idx = dayIdx * slotsPerDay + slotIdx;
                   const count = slotCounts[idx] || 0;
+                  const handleClick = (e: React.MouseEvent) => {
+                    e.stopPropagation();
+                    console.log('Cell clicked:', idx); // Debug log
+                    setSelectedSlot(idx);
+                  };
                   return (
                     <button
                       key={`${dayIdx}-${slotIdx}`}
-                      onClick={() => setSelectedSlot(idx)}
-                      className={`h-8 rounded ${getColor(count)} flex items-center justify-center text-xs font-medium hover:ring-2 hover:ring-blue-500 cursor-pointer transition-all`}
+                      type="button"
+                      onClick={handleClick}
+                      className={`h-8 rounded ${getColor(count)} flex items-center justify-center text-xs font-medium hover:ring-2 hover:ring-blue-500 cursor-pointer transition-all touch-none`}
                       title={`Click to see who's available`}
                     >
                       {count > 0 && count}
                     </button>
                   );
                 })}
-              </>
+              </div>
             ))}
           </div>
 
           {/* Legend */}
           <div className="mt-6 flex flex-wrap gap-4 justify-center text-xs">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 text-gray-900 dark:text-gray-100">
               <div className="w-4 h-4 bg-gray-100 dark:bg-gray-800 rounded" />
               <span>None</span>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 text-gray-900 dark:text-gray-100">
               <div className="w-4 h-4 bg-red-400 dark:bg-red-600 rounded" />
               <span>&lt; 25%</span>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 text-gray-900 dark:text-gray-100">
               <div className="w-4 h-4 bg-orange-400 dark:bg-orange-600 rounded" />
               <span>25-50%</span>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 text-gray-900 dark:text-gray-100">
               <div className="w-4 h-4 bg-yellow-400 dark:bg-yellow-600 rounded" />
               <span>50-75%</span>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 text-gray-900 dark:text-gray-100">
               <div className="w-4 h-4 bg-green-500 dark:bg-green-600 rounded" />
               <span>≥ 75%</span>
             </div>

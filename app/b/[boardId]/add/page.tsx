@@ -20,6 +20,7 @@ export default function AddAvailabilityPage() {
   const [selectedSlots, setSelectedSlots] = useState<Set<number>>(new Set());
   const [isDragging, setIsDragging] = useState(false);
   const [dragMode, setDragMode] = useState<"select" | "deselect">("select");
+  const [mouseDownSlot, setMouseDownSlot] = useState<number | null>(null);
 
   useEffect(() => {
     if (!boardId) return;
@@ -74,15 +75,44 @@ export default function AddAvailabilityPage() {
   };
 
   const handleSlotMouseDown = (slotIdx: number) => {
-    setIsDragging(true);
+    setMouseDownSlot(slotIdx);
+    setIsDragging(false); // Will be set to true on mousemove
     const isSelected = selectedSlots.has(slotIdx);
     setDragMode(isSelected ? "deselect" : "select");
-    handleSlotToggle(slotIdx);
   };
 
   const handleSlotMouseEnter = (slotIdx: number) => {
-    if (!isDragging) return;
+    if (mouseDownSlot === null) return;
     
+    // If we've moved to a different cell, we're dragging
+    if (slotIdx !== mouseDownSlot) {
+      const wasDragging = isDragging;
+      if (!wasDragging) {
+        setIsDragging(true);
+        // Select the initial cell when we start dragging
+        const newSelected = new Set(selectedSlots);
+        if (dragMode === "select") {
+          newSelected.add(mouseDownSlot);
+        } else {
+          newSelected.delete(mouseDownSlot);
+        }
+        // Also select the current cell
+        if (dragMode === "select") {
+          newSelected.add(slotIdx);
+        } else {
+          newSelected.delete(slotIdx);
+        }
+        setSelectedSlots(newSelected);
+        return;
+      }
+    } else {
+      // Still on the same cell, not dragging yet
+      if (!isDragging) {
+        return;
+      }
+    }
+    
+    // Continue dragging - select current cell
     const newSelected = new Set(selectedSlots);
     if (dragMode === "select") {
       newSelected.add(slotIdx);
@@ -93,7 +123,12 @@ export default function AddAvailabilityPage() {
   };
 
   const handleMouseUp = () => {
+    // If we clicked without dragging, toggle the slot
+    if (mouseDownSlot !== null && !isDragging) {
+      handleSlotToggle(mouseDownSlot);
+    }
     setIsDragging(false);
+    setMouseDownSlot(null);
   };
 
   useEffect(() => {
@@ -254,7 +289,7 @@ export default function AddAvailabilityPage() {
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Name input */}
           <div>
-            <label htmlFor="name" className="block text-sm font-medium mb-2">
+            <label htmlFor="name" className="block text-sm font-medium mb-2 text-gray-900 dark:text-gray-100">
               Your name (optional)
             </label>
             <input
@@ -270,7 +305,7 @@ export default function AddAvailabilityPage() {
 
           {/* Instructions */}
           <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-            <p className="text-sm">
+            <p className="text-sm text-gray-900 dark:text-gray-100">
               {'ontouchstart' in window ? (
                 <>
                   <strong>Tap</strong> individual slots to select or deselect. Tap row/column headers to select entire rows/columns.
@@ -285,7 +320,7 @@ export default function AddAvailabilityPage() {
 
           {/* Availability grid */}
           <div className="mb-6">
-            <h2 className="font-semibold mb-3">Select your availability</h2>
+            <h2 className="font-semibold mb-3 text-gray-900 dark:text-gray-100">Select your availability</h2>
             <AvailabilityGrid
               settings={settings}
               selectedSlots={selectedSlots}
@@ -382,12 +417,11 @@ function AvailabilityGrid({
 
           {/* Time rows */}
           {timeLabels.map((time, slotIdx) => (
-            <>
+            <div key={`row-${slotIdx}`} className="contents">
               <button
-                key={`time-${slotIdx}`}
                 type="button"
                 onClick={() => onSelectRow(slotIdx)}
-                className="text-xs text-right pr-2 py-1 text-gray-900 dark:text-gray-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded transition-colors sticky left-0 bg-white dark:bg-gray-950 z-10 border-r border-gray-200 dark:border-gray-800"
+                className="text-xs text-right pr-2 py-1 text-gray-900 dark:text-gray-100 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded transition-colors sticky left-0 bg-white dark:bg-gray-950 z-10 border-r border-gray-200 dark:border-gray-800"
                 title="Click to select entire row"
               >
                 {time}
@@ -421,7 +455,7 @@ function AvailabilityGrid({
                   />
                 );
               })}
-            </>
+            </div>
           ))}
         </div>
       </div>
