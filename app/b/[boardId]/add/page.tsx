@@ -753,7 +753,10 @@ function computeSlotsPerDay(settings: AvailabilitySettings): number {
 }
 
 function getDayLabel(dayIndex: number, settings: AvailabilitySettings): string {
-  const startDate = new Date(settings.startDate);
+  // Parse date string as YYYY-MM-DD and create date in local timezone
+  // This avoids timezone issues where "2026-01-20" would be interpreted as UTC midnight
+  const [year, month, day] = settings.startDate.split("-").map(Number);
+  const startDate = new Date(year, month - 1, day); // month is 0-indexed
   const targetDate = new Date(startDate);
   targetDate.setDate(startDate.getDate() + dayIndex);
   const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
