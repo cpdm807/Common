@@ -716,10 +716,17 @@ function AvailabilityGrid({
                   <button
                     key={`${dayIdx}-${slotIdx}`}
                     type="button"
-                    onClick={() => onSlotToggle(idx)}
+                    onClick={(e) => {
+                      // Only handle onClick for touch devices
+                      // Desktop uses mouseup handler to avoid double-toggle
+                      if ('ontouchstart' in window) {
+                        onSlotToggle(idx);
+                      }
+                    }}
                     onMouseDown={(e) => {
                       // Only enable drag on desktop (devices with mouse)
                       if (e.button === 0 && !('ontouchstart' in window)) {
+                        e.preventDefault(); // Prevent default to avoid onClick conflict
                         onSlotMouseDown(idx);
                       }
                     }}
