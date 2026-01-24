@@ -4,6 +4,9 @@ import type {
   AvailabilitySettings,
   BestWindow,
   ReadinessSettings,
+  PollSettings,
+  PollOption,
+  PollVote,
 } from "./types";
 
 // ID generation
@@ -355,4 +358,166 @@ export function aggregateReadiness(
     distributionBuckets: buckets,
     values: readinessValues,
   };
+}
+
+// Poll validation functions
+
+export function validatePollSettings(settings: unknown): settings is PollSettings {
+  if (!settings || typeof settings !== "object") return false;
+  const s = settings as Record<string, unknown>;
+
+  return (
+    typeof s.participantsCanAddOptions === "boolean" &&
+    (s.votingType === "single" || s.votingType === "multi") &&
+    (s.resultsVisibility === "immediately" || s.resultsVisibility === "after-vote" || s.resultsVisibility === "after-close") &&
+    typeof s.anonymous === "boolean" &&
+    typeof s.allowChangeVote === "boolean" &&
+    (s.closeAt === undefined || typeof s.closeAt === "string") &&
+    (s.maxSelections === undefined || (typeof s.maxSelections === "number" && s.maxSelections > 0))
+  );
+}
+
+export function validatePollQuestion(question: unknown): boolean {
+  if (typeof question !== "string") return false;
+  return question.trim().length > 0 && question.length <= 500;
+}
+
+export function validatePollDescription(description: unknown): boolean {
+  if (description === undefined || description === null) return true;
+  if (typeof description !== "string") return false;
+  return description.length <= 1000;
+}
+
+export function validatePollOptionText(text: unknown): boolean {
+  if (typeof text !== "string") return false;
+  return text.trim().length > 0 && text.length <= 200;
+}
+
+export function validatePollDeadline(closeAt: string | undefined, createdAt: string): boolean {
+  if (!closeAt) return true; // No deadline is valid
+  
+  const closeDate = new Date(closeAt);
+  const createDate = new Date(createdAt);
+  const now = new Date();
+  
+  // Must be in the future
+  if (closeDate <= now) return false;
+  
+  // Must be within 7 days of creation
+  const maxCloseDate = new Date(createDate);
+  maxCloseDate.setDate(maxCloseDate.getDate() + 7);
+  
+  return closeDate <= maxCloseDate;
+}
+
+// Poll aggregation functions
+
+export function aggregatePollResults(
+  options: PollOption[],
+  votes: PollVote[],
+  settings: PollSettings
+): {
+  optionResults: Array<{
+    id: string;
+    text: string;
+    order: number;
+    isArchived: boolean;
+    createdBy: "editor" | "participant";
+    voteCount: number;
+    percentage: number;
+  }>;
+  totalVotes: number;
+} {
+  // Filter out archived options
+  const activeOptions = options.filter((opt) => !opt.isArchived);
+  
+  // Count votes per option
+  const voteCounts = new Map<string, number>();
+  for (const vote of votes) {
+    const current = voteCounts.get(vote.optionId) || 0;
+    voteCounts.set(vote.optionId, current + 1);
+  }
+
+  const totalVotes = votes.length;
+
+  // Build results
+  const optionResults = activeOptions
+    .sort((a, b) => a.order - b.order)
+    .map((option) => {
+      const voteCount = voteCounts.get(option.id) || 0;
+      const percentage = totalVotes > 0 ? Math.round((voteCount / totalVotes) * 100) : 0;
+
+      return {
+        id: option.id,
+        text: option.text,
+        order: option.order,
+        isArchived: option.isArchived,
+        createdBy: option.createdBy,
+        voteCount,
+        percentage,
+      };
+    });
+
+  return {
+    optionResults,
+    totalVotes,
+  };
+}
+
+export function getUserVotes(
+  votes: PollVote[],
+  voterKeyHash: string
+): string[] {
+  return votes
+    .filter((vote) => vote.voterKeyHash === voterKeyHash)
+    .map((vote) => vote.optionId);
+}
+
+export function hasUserVoted(
+  votes: PollVote[],
+  voterKeyHash: string
+): boolean {
+  return votes.some((vote) => vote.voterKeyHash === voterKeyHash);
+}
+
+export function computePollExpiresAt(createdAt: string, closeAt?: string): number {
+  const createDate = new Date(createdAt);
+  const now = Math.floor(Date.now() / 1000);
+
+  if (closeAt) {
+    const closeDate = new Date(closeAt);
+    // Expire 7 days after close date
+    const expireDate = new Date(closeDate);
+    expireDate.setDate(expireDate.getDate() + 7);
+    return Math.floor(expireDate.getTime() / 1000);
+  } else {
+    // Expire 7 days after creation
+    const expireDate = new Date(createDate);
+    expireDate.setDate(expireDate.getDate() + 7);
+    return Math.floor(expireDate.getTime() / 1000);
+  }
+}
+
+export function isPollClosed(poll: { closedAt?: string; closeAt?: string }): boolean {
+  if (poll.closedAt) {
+    return true; // Manually closed
+  }
+
+  if (poll.closeAt) {
+    const closeDate = new Date(poll.closeAt);
+    const now = new Date();
+    return now >= closeDate; // Deadline passed
+  }
+
+  return false;
+}
+
+export function generateSlug(): string {
+  // Generate a readable slug similar to boardId but more URL-friendly
+  const chars = "abcdefghijklmnopqrstuvwxyz0123456789";
+  let result = "";
+  for (let i = 0; i < 12; i++) {
+    result += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return result;
 }

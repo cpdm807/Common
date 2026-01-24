@@ -7,8 +7,9 @@ import {
   PutCommand,
   QueryCommand,
   UpdateCommand,
+  DeleteCommand,
 } from "@aws-sdk/lib-dynamodb";
-import type { Board, Contribution, Feedback } from "./types";
+import type { Board, Contribution, Feedback, Poll, PollOption, PollVote } from "./types";
 
 // Configure DynamoDB client
 // For local development, set DYNAMODB_ENDPOINT to http://localhost:8000
@@ -276,5 +277,452 @@ export async function checkAndUpdateRateLimit(
   } catch (error) {
     console.error("Rate limit check error:", error);
     return true; // Allow on error (best-effort)
+  }
+}
+
+// Poll operations
+
+export async function createPoll(poll: Poll): Promise<void> {
+  await docClient.send(
+    new PutCommand({
+      TableName: TABLE_NAME,
+      Item: {
+        PK: `POLL#${poll.pollId}`,
+        SK: "META",
+        ...poll,
+        TTL: poll.expiresAt,
+      },
+    })
+  );
+}
+
+export async function getPoll(pollId: string): Promise<Poll | null> {
+  const result = await docClient.send(
+    new GetCommand({
+      TableName: TABLE_NAME,
+      Key: {
+        PK: `POLL#${pollId}`,
+        SK: "META",
+      },
+    })
+  );
+
+  if (!result.Item) {
+    return null;
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { PK, SK, TTL, ...poll } = result.Item;
+  return poll as Poll;
+}
+
+export async function getPollBySlug(slug: string): Promise<Poll | null> {
+  // First, get the pollId from the slug mapping
+  const mappingResult = await docClient.send(
+    new GetCommand({
+      TableName: TABLE_NAME,
+      Key: {
+        PK: `POLL#SLUG#${slug}`,
+        SK: "META",
+      },
+    })
+  );
+
+  if (!mappingResult.Item || !mappingResult.Item.pollId) {
+    return null;
+  }
+
+  const pollId = mappingResult.Item.pollId as string;
+  return getPoll(pollId);
+}
+
+export async function createPollSlugMapping(slug: string, pollId: string, expiresAt: number): Promise<void> {
+  await docClient.send(
+    new PutCommand({
+      TableName: TABLE_NAME,
+      Item: {
+        PK: `POLL#SLUG#${slug}`,
+        SK: "META",
+        pollId,
+        TTL: expiresAt,
+      },
+    })
+  );
+}
+
+export async function updatePoll(pollId: string, updates: Partial<Poll>): Promise<void> {
+  const updateExpressions: string[] = [];
+  const expressionAttributeNames: Record<string, string> = {};
+  const expressionAttributeValues: Record<string, any> = {};
+
+  if (updates.question !== undefined) {
+    updateExpressions.push("#question = :question");
+    expressionAttributeNames["#question"] = "question";
+    expressionAttributeValues[":question"] = updates.question;
+  }
+
+  if (updates.description !== undefined) {
+    updateExpressions.push("description = :description");
+    expressionAttributeValues[":description"] = updates.description;
+  }
+
+  if (updates.settings !== undefined) {
+    updateExpressions.push("settings = :settings");
+    expressionAttributeValues[":settings"] = updates.settings;
+  }
+
+  if (updates.closedAt !== undefined) {
+    updateExpressions.push("closedAt = :closedAt");
+    expressionAttributeValues[":closedAt"] = updates.closedAt;
+  }
+
+  if (updates.closeAt !== undefined) {
+    updateExpressions.push("closeAt = :closeAt");
+    expressionAttributeValues[":closeAt"] = updates.closeAt;
+  }
+
+  if (updates.expiresAt !== undefined) {
+    updateExpressions.push("expiresAt = :expiresAt");
+    expressionAttributeValues[":expiresAt"] = updates.expiresAt;
+    // Also update TTL
+    updateExpressions.push("TTL = :ttl");
+    expressionAttributeValues[":ttl"] = updates.expiresAt;
+  }
+
+  if (updates.updatedAt !== undefined) {
+    updateExpressions.push("updatedAt = :updatedAt");
+    expressionAttributeValues[":updatedAt"] = updates.updatedAt;
+  }
+
+  if (updateExpressions.length === 0) {
+    return; // Nothing to update
+  }
+
+  await docClient.send(
+    new UpdateCommand({
+      TableName: TABLE_NAME,
+      Key: {
+        PK: `POLL#${pollId}`,
+        SK: "META",
+      },
+      UpdateExpression: `SET ${updateExpressions.join(", ")}`,
+      ExpressionAttributeNames: Object.keys(expressionAttributeNames).length > 0 ? expressionAttributeNames : undefined,
+      ExpressionAttributeValues: expressionAttributeValues,
+    })
+  );
+}
+
+export async function deletePoll(pollId: string): Promise<void> {
+  // Delete poll meta
+  await docClient.send(
+    new DeleteCommand({
+      TableName: TABLE_NAME,
+      Key: {
+        PK: `POLL#${pollId}`,
+        SK: "META",
+      },
+    })
+  );
+
+  // Delete all options and votes (they'll be cleaned up by TTL, but we can delete them explicitly)
+  // For now, we'll rely on TTL cleanup
+}
+
+export async function incrementPollViews(pollId: string): Promise<void> {
+  try {
+    await docClient.send(
+      new UpdateCommand({
+        TableName: TABLE_NAME,
+        Key: {
+          PK: `POLL#${pollId}`,
+          SK: "META",
+        },
+        UpdateExpression: "ADD stats.#views :inc",
+        ExpressionAttributeNames: {
+          "#views": "views",
+        },
+        ExpressionAttributeValues: {
+          ":inc": 1,
+        },
+      })
+    );
+  } catch (error) {
+    console.error("Error incrementing poll views:", error);
+  }
+}
+
+export async function incrementPollVotes(pollId: string): Promise<void> {
+  try {
+    await docClient.send(
+      new UpdateCommand({
+        TableName: TABLE_NAME,
+        Key: {
+          PK: `POLL#${pollId}`,
+          SK: "META",
+        },
+        UpdateExpression: "ADD stats.#votes :inc",
+        ExpressionAttributeNames: {
+          "#votes": "votes",
+        },
+        ExpressionAttributeValues: {
+          ":inc": 1,
+        },
+      })
+    );
+  } catch (error) {
+    console.error("Error incrementing poll votes:", error);
+  }
+}
+
+// Poll option operations
+
+export async function createPollOption(option: PollOption): Promise<void> {
+  await docClient.send(
+    new PutCommand({
+      TableName: TABLE_NAME,
+      Item: {
+        PK: `POLL#${option.pollId}`,
+        SK: `OPTION#${option.id}`,
+        ...option,
+      },
+    })
+  );
+}
+
+export async function getPollOptions(pollId: string): Promise<PollOption[]> {
+  const result = await docClient.send(
+    new QueryCommand({
+      TableName: TABLE_NAME,
+      KeyConditionExpression: "PK = :pk AND begins_with(SK, :sk)",
+      ExpressionAttributeValues: {
+        ":pk": `POLL#${pollId}`,
+        ":sk": "OPTION#",
+      },
+    })
+  );
+
+  if (!result.Items) {
+    return [];
+  }
+
+  return result.Items.map((item) => {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { PK, SK, ...option } = item;
+    return option as PollOption;
+  });
+}
+
+export async function updatePollOption(
+  pollId: string,
+  optionId: string,
+  updates: Partial<PollOption>
+): Promise<void> {
+  const updateExpressions: string[] = [];
+  const expressionAttributeNames: Record<string, string> = {};
+  const expressionAttributeValues: Record<string, any> = {};
+
+  if (updates.text !== undefined) {
+    updateExpressions.push("#text = :text");
+    expressionAttributeNames["#text"] = "text";
+    expressionAttributeValues[":text"] = updates.text;
+  }
+
+  if (updates.order !== undefined) {
+    updateExpressions.push("#order = :order");
+    expressionAttributeNames["#order"] = "order";
+    expressionAttributeValues[":order"] = updates.order;
+  }
+
+  if (updates.isArchived !== undefined) {
+    updateExpressions.push("isArchived = :isArchived");
+    expressionAttributeValues[":isArchived"] = updates.isArchived;
+  }
+
+  if (updateExpressions.length === 0) {
+    return;
+  }
+
+  await docClient.send(
+    new UpdateCommand({
+      TableName: TABLE_NAME,
+      Key: {
+        PK: `POLL#${pollId}`,
+        SK: `OPTION#${optionId}`,
+      },
+      UpdateExpression: `SET ${updateExpressions.join(", ")}`,
+      ExpressionAttributeNames: Object.keys(expressionAttributeNames).length > 0 ? expressionAttributeNames : undefined,
+      ExpressionAttributeValues: expressionAttributeValues,
+    })
+  );
+}
+
+// Poll vote operations
+
+export async function createPollVote(vote: PollVote): Promise<void> {
+  const createdAtEpochMs = new Date(vote.createdAt).getTime();
+  const random = Math.random().toString(36).substring(2, 10);
+
+  await docClient.send(
+    new PutCommand({
+      TableName: TABLE_NAME,
+      Item: {
+        PK: `POLL#${vote.pollId}`,
+        SK: `VOTE#${createdAtEpochMs}#${random}`,
+        ...vote,
+      },
+    })
+  );
+}
+
+export async function getPollVotes(pollId: string): Promise<PollVote[]> {
+  const result = await docClient.send(
+    new QueryCommand({
+      TableName: TABLE_NAME,
+      KeyConditionExpression: "PK = :pk AND begins_with(SK, :sk)",
+      ExpressionAttributeValues: {
+        ":pk": `POLL#${pollId}`,
+        ":sk": "VOTE#",
+      },
+    })
+  );
+
+  if (!result.Items) {
+    return [];
+  }
+
+  return result.Items.map((item) => {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { PK, SK, ...vote } = item;
+    return vote as PollVote;
+  });
+}
+
+export async function getPollVotesByVoter(
+  pollId: string,
+  voterKeyHash: string
+): Promise<PollVote[]> {
+  const allVotes = await getPollVotes(pollId);
+  return allVotes.filter((vote) => vote.voterKeyHash === voterKeyHash);
+}
+
+export async function deletePollVote(pollId: string, voteId: string): Promise<void> {
+  // First find the vote to get its SK
+  const votes = await getPollVotes(pollId);
+  const vote = votes.find((v) => v.id === voteId);
+  
+  if (!vote) {
+    throw new Error("Vote not found");
+  }
+
+  // We need to find the SK - votes are stored with timestamp-based SK
+  // For now, we'll query and delete by matching voteId
+  const result = await docClient.send(
+    new QueryCommand({
+      TableName: TABLE_NAME,
+      KeyConditionExpression: "PK = :pk AND begins_with(SK, :sk)",
+      ExpressionAttributeValues: {
+        ":pk": `POLL#${pollId}`,
+        ":sk": "VOTE#",
+      },
+    })
+  );
+
+  if (result.Items) {
+    for (const item of result.Items) {
+      if ((item as PollVote).id === voteId) {
+        await docClient.send(
+          new DeleteCommand({
+            TableName: TABLE_NAME,
+            Key: {
+              PK: `POLL#${pollId}`,
+              SK: item.SK,
+            },
+          })
+        );
+        return;
+      }
+    }
+  }
+
+  throw new Error("Vote not found");
+}
+
+// Rate limiting for polls
+export async function checkAndUpdatePollRateLimit(
+  pollId: string,
+  maxPerMinute: number
+): Promise<boolean> {
+  try {
+    const poll = await getPoll(pollId);
+    if (!poll) return true;
+
+    const now = Math.floor(Date.now() / 1000);
+    const windowStart = poll.rateLimit?.votes?.windowStart || 0;
+    const count = poll.rateLimit?.votes?.count || 0;
+
+    if (now - windowStart > 60) {
+      // Reset window - need to set the entire rateLimit object
+      await docClient.send(
+        new UpdateCommand({
+          TableName: TABLE_NAME,
+          Key: {
+            PK: `POLL#${pollId}`,
+            SK: "META",
+          },
+          UpdateExpression: "SET rateLimit = :rl",
+          ExpressionAttributeValues: {
+            ":rl": {
+              votes: { count: 1, windowStart: now },
+            },
+          },
+        })
+      );
+      return true;
+    }
+
+    if (count >= maxPerMinute) {
+      return false;
+    }
+
+    // Increment count - need to ensure rateLimit exists first
+    if (!poll.rateLimit) {
+      await docClient.send(
+        new UpdateCommand({
+          TableName: TABLE_NAME,
+          Key: {
+            PK: `POLL#${pollId}`,
+            SK: "META",
+          },
+          UpdateExpression: "SET rateLimit = :rl",
+          ExpressionAttributeValues: {
+            ":rl": {
+              votes: { count: count + 1, windowStart },
+            },
+          },
+        })
+      );
+    } else {
+      await docClient.send(
+        new UpdateCommand({
+          TableName: TABLE_NAME,
+          Key: {
+            PK: `POLL#${pollId}`,
+            SK: "META",
+          },
+          UpdateExpression: "SET rateLimit.votes.#count = :count",
+          ExpressionAttributeNames: {
+            "#count": "count",
+          },
+          ExpressionAttributeValues: {
+            ":count": count + 1,
+          },
+        })
+      );
+    }
+
+    return true;
+  } catch (error) {
+    console.error("Rate limit check error:", error);
+    return true;
   }
 }

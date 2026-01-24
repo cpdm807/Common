@@ -36,13 +36,17 @@ export const toolRegistry: Record<ToolType, ToolConfig> = {
         ? `${title}: Quick group check-ins on a shared scale.`
         : "Quick group check-ins on a shared scale.",
   },
-  blockers: {
-    displayName: "Blockers",
-    createRoute: "#",
-    icon: "🚧",
-    description: "Identify what's blocking progress",
-    metadataTitle: () => "Common – Blockers",
-    metadataDescription: () => "Identify what's blocking progress.",
+  poll: {
+    displayName: "Poll",
+    createRoute: "/tools/poll/create",
+    icon: "📊",
+    description: "Create a shareable poll via a single link",
+    metadataTitle: (title?: string) =>
+      title ? `Common – ${title}` : "Common – Poll",
+    metadataDescription: (title?: string) =>
+      title
+        ? `${title}: Vote and see results.`
+        : "Vote and see results.",
   },
   opinions: {
     displayName: "Opinions",
@@ -114,6 +118,20 @@ export function getBoardShareCopy(
       heading: "Share your pulse",
       subheading: boardTitle ? truncateTitle(boardTitle, 60) : "", // Empty if no title
       trustLine: "No accounts. Just share your pulse.",
+    };
+  }
+
+  // Poll
+  if (toolType === "poll") {
+    const title = boardTitle
+      ? `Vote and see results · ${boardTitle}`
+      : "Vote and see results";
+    return {
+      title,
+      description: "Vote and see results. No accounts.",
+      heading: "Vote and see results",
+      subheading: boardTitle ? truncateTitle(boardTitle, 60) : "", // Empty if no title
+      trustLine: "No accounts. Just vote.",
     };
   }
 

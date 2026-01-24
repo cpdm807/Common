@@ -1,6 +1,6 @@
 // Type definitions for Common
 
-export type ToolType = "availability" | "readiness" | "blockers" | "opinions";
+export type ToolType = "availability" | "readiness" | "poll" | "opinions";
 
 export type BoardStatus = "open" | "closed";
 
@@ -57,6 +57,94 @@ export interface ReadinessSettings {
 
 export interface ReadinessPayload {
   readiness: number; // integer 0..100
+}
+
+// Poll types
+export interface PollSettings {
+  participantsCanAddOptions: boolean;
+  votingType: "single" | "multi";
+  resultsVisibility: "immediately" | "after-vote" | "after-close";
+  anonymous: boolean;
+  allowChangeVote: boolean;
+  closeAt?: string; // ISO string, optional deadline
+  maxSelections?: number; // For multi-choice polls
+}
+
+export interface PollOption {
+  id: string;
+  pollId: string;
+  text: string;
+  order: number;
+  isArchived: boolean;
+  createdAt: string; // ISO string
+  createdBy: "editor" | "participant";
+}
+
+export interface PollVote {
+  id: string;
+  pollId: string;
+  optionId: string;
+  voterKeyHash: string;
+  voterName?: string;
+  createdAt: string; // ISO string
+}
+
+export interface Poll {
+  pollId: string;
+  slug: string;
+  question: string;
+  description?: string;
+  settings: PollSettings;
+  createdAt: string; // ISO string
+  updatedAt: string; // ISO string
+  editorTokenHash: string;
+  closedAt?: string; // ISO string, nullable
+  closeAt?: string; // ISO string, nullable deadline
+  expiresAt: number; // epoch seconds (TTL)
+  stats: {
+    views: number;
+    votes: number;
+  };
+  rateLimit?: {
+    votes?: {
+      count: number;
+      windowStart: number;
+    };
+  };
+}
+
+export interface PollPublicData {
+  pollId: string;
+  slug: string;
+  question: string;
+  description?: string;
+  settings: PollSettings;
+  createdAt: string;
+  updatedAt: string;
+  closedAt?: string;
+  closeAt?: string;
+  expiresAt: number;
+  stats: {
+    views: number;
+    votes: number;
+  };
+  computed: {
+    expired: boolean;
+    closed: boolean;
+    options: Array<{
+      id: string;
+      text: string;
+      order: number;
+      isArchived: boolean;
+      createdBy: "editor" | "participant";
+      voteCount: number;
+      percentage: number;
+    }>;
+    totalVotes: number;
+    userVoted: boolean;
+    userVotes?: string[]; // optionIds the user voted for
+    resultsVisible: boolean;
+  };
 }
 
 export interface Feedback {

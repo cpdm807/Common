@@ -30,12 +30,12 @@ const tools: Tool[] = [
     icon: toolRegistry.readiness.icon,
   },
   {
-    id: "blockers",
-    name: "Blockers",
-    description: "Identify what's blocking progress",
-    href: "#",
-    available: false,
-    icon: "🚧",
+    id: "poll",
+    name: toolRegistry.poll.displayName,
+    description: toolRegistry.poll.description,
+    href: toolRegistry.poll.createRoute,
+    available: true,
+    icon: toolRegistry.poll.icon,
   },
   {
     id: "opinions",
