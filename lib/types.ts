@@ -227,7 +227,7 @@ export interface BoardTool {
   };
 }
 
-export interface BoardPublicData {
+export interface BoardToolPublicData {
   boardId: string;
   slug: string;
   title: string;

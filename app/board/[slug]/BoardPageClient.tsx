@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams, useSearchParams } from "next/navigation";
-import type { BoardPublicData, BoardItemTag } from "@/lib/types";
+import type { BoardToolPublicData, BoardItemTag } from "@/lib/types";
 
 // Generate random key for browser
 function generateRandomKey(): string {
@@ -51,7 +51,7 @@ export default function BoardPageClient() {
   const slug = params?.slug as string;
   const editToken = searchParams.get("edit");
 
-  const [board, setBoard] = useState<BoardPublicData | null>(null);
+  const [board, setBoard] = useState<BoardToolPublicData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [participantToken, setParticipantToken] = useState<string | null>(null);
@@ -874,8 +874,8 @@ function ItemCard({
   editingItemId,
   setEditingItemId,
 }: {
-  item: BoardPublicData["computed"]["items"][0];
-  board: BoardPublicData;
+  item: BoardToolPublicData["computed"]["items"][0];
+  board: BoardToolPublicData;
   participantToken: string | null;
   canInteract: boolean;
   onVoteUp: () => void;

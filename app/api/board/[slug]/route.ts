@@ -17,7 +17,7 @@ import {
   computeBoardExpiresAt,
   simpleHash,
 } from "@/lib/utils";
-import type { BoardPublicData } from "@/lib/types";
+import type { BoardToolPublicData } from "@/lib/types";
 
 export async function GET(
   request: NextRequest,
@@ -104,7 +104,7 @@ export async function GET(
       });
     }
 
-    const response: BoardPublicData = {
+    const response: BoardToolPublicData = {
       boardId: board.boardId,
       slug: board.slug,
       title: board.title,
