@@ -48,13 +48,17 @@ export const toolRegistry: Record<ToolType, ToolConfig> = {
         ? `${title}: Vote and see results.`
         : "Vote and see results.",
   },
-  opinions: {
-    displayName: "Opinions",
-    createRoute: "#",
-    icon: "💭",
-    description: "Gather team opinions",
-    metadataTitle: () => "Common – Opinions",
-    metadataDescription: () => "Gather team opinions.",
+  board: {
+    displayName: "Board",
+    createRoute: "/tools/board/create",
+    icon: "📋",
+    description: "Shared items with lightweight voting, for agendas and retros.",
+    metadataTitle: (title?: string) =>
+      title ? `Common – ${title}` : "Common – Board",
+    metadataDescription: (title?: string) =>
+      title
+        ? `${title}: Shared items with lightweight voting, for agendas and retros.`
+        : "Shared items with lightweight voting, for agendas and retros.",
   },
 };
 
@@ -132,6 +136,20 @@ export function getBoardShareCopy(
       heading: "Vote and see results",
       subheading: boardTitle ? truncateTitle(boardTitle, 60) : "", // Empty if no title
       trustLine: "No accounts. Just vote.",
+    };
+  }
+
+  // Board
+  if (toolType === "board") {
+    const title = boardTitle
+      ? `Add items and vote · ${boardTitle}`
+      : "Add items and vote";
+    return {
+      title,
+      description: "Shared items with lightweight voting, for agendas and retros. No accounts.",
+      heading: "Add items and vote",
+      subheading: boardTitle ? truncateTitle(boardTitle, 60) : "", // Empty if no title
+      trustLine: "No accounts. Just add items and vote.",
     };
   }
 

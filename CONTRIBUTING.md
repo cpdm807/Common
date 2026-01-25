@@ -83,7 +83,7 @@ git push origin feature/your-feature-name
 
 ### Medium Priority
 
-- New tool implementations (readiness, blockers, opinions)
+- New tool implementations (readiness, blockers)
 - UI polish
 - Better error handling
 

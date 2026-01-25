@@ -38,12 +38,12 @@ const tools: Tool[] = [
     icon: toolRegistry.poll.icon,
   },
   {
-    id: "opinions",
-    name: "Opinions",
-    description: "Gather team opinions",
-    href: "#",
-    available: false,
-    icon: "💭",
+    id: "board",
+    name: toolRegistry.board.displayName,
+    description: toolRegistry.board.description,
+    href: toolRegistry.board.createRoute,
+    available: true,
+    icon: toolRegistry.board.icon,
   },
 ];
 

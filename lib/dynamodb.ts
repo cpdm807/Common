@@ -9,7 +9,7 @@ import {
   UpdateCommand,
   DeleteCommand,
 } from "@aws-sdk/lib-dynamodb";
-import type { Board, Contribution, Feedback, Poll, PollOption, PollVote } from "./types";
+import type { Board, Contribution, Feedback, Poll, PollOption, PollVote, BoardTool, BoardColumn, BoardItem, BoardVote } from "./types";
 
 // Configure DynamoDB client
 // For local development, set DYNAMODB_ENDPOINT to http://localhost:8000
@@ -710,6 +710,512 @@ export async function checkAndUpdatePollRateLimit(
             SK: "META",
           },
           UpdateExpression: "SET rateLimit.votes.#count = :count",
+          ExpressionAttributeNames: {
+            "#count": "count",
+          },
+          ExpressionAttributeValues: {
+            ":count": count + 1,
+          },
+        })
+      );
+    }
+
+    return true;
+  } catch (error) {
+    console.error("Rate limit check error:", error);
+    return true;
+  }
+}
+
+// Board tool operations
+
+export async function createBoardTool(board: BoardTool): Promise<void> {
+  await docClient.send(
+    new PutCommand({
+      TableName: TABLE_NAME,
+      Item: {
+        PK: `BOARDTOOL#${board.boardId}`,
+        SK: "META",
+        ...board,
+        TTL: board.expiresAt,
+      },
+    })
+  );
+}
+
+export async function getBoardTool(boardId: string): Promise<BoardTool | null> {
+  const result = await docClient.send(
+    new GetCommand({
+      TableName: TABLE_NAME,
+      Key: {
+        PK: `BOARDTOOL#${boardId}`,
+        SK: "META",
+      },
+    })
+  );
+
+  if (!result.Item) {
+    return null;
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { PK, SK, TTL, ...board } = result.Item;
+  return board as BoardTool;
+}
+
+export async function getBoardToolBySlug(slug: string): Promise<BoardTool | null> {
+  // First, get the boardId from the slug mapping
+  const mappingResult = await docClient.send(
+    new GetCommand({
+      TableName: TABLE_NAME,
+      Key: {
+        PK: `BOARDTOOL#SLUG#${slug}`,
+        SK: "META",
+      },
+    })
+  );
+
+  if (!mappingResult.Item || !mappingResult.Item.boardId) {
+    return null;
+  }
+
+  const boardId = mappingResult.Item.boardId as string;
+  return getBoardTool(boardId);
+}
+
+export async function createBoardToolSlugMapping(slug: string, boardId: string, expiresAt: number): Promise<void> {
+  await docClient.send(
+    new PutCommand({
+      TableName: TABLE_NAME,
+      Item: {
+        PK: `BOARDTOOL#SLUG#${slug}`,
+        SK: "META",
+        boardId,
+        TTL: expiresAt,
+      },
+    })
+  );
+}
+
+export async function updateBoardTool(boardId: string, updates: Partial<BoardTool>): Promise<void> {
+  const updateExpressions: string[] = [];
+  const expressionAttributeNames: Record<string, string> = {};
+  const expressionAttributeValues: Record<string, any> = {};
+
+  if (updates.title !== undefined) {
+    updateExpressions.push("#title = :title");
+    expressionAttributeNames["#title"] = "title";
+    expressionAttributeValues[":title"] = updates.title;
+  }
+
+  if (updates.votingEnabled !== undefined) {
+    updateExpressions.push("votingEnabled = :votingEnabled");
+    expressionAttributeValues[":votingEnabled"] = updates.votingEnabled;
+  }
+
+  if (updates.closedAt !== undefined) {
+    updateExpressions.push("closedAt = :closedAt");
+    expressionAttributeValues[":closedAt"] = updates.closedAt;
+  }
+
+  if (updates.closeAt !== undefined) {
+    updateExpressions.push("closeAt = :closeAt");
+    expressionAttributeValues[":closeAt"] = updates.closeAt;
+  }
+
+  if (updates.expiresAt !== undefined) {
+    updateExpressions.push("expiresAt = :expiresAt");
+    expressionAttributeValues[":expiresAt"] = updates.expiresAt;
+    // Also update TTL
+    updateExpressions.push("TTL = :ttl");
+    expressionAttributeValues[":ttl"] = updates.expiresAt;
+  }
+
+  if (updates.updatedAt !== undefined) {
+    updateExpressions.push("updatedAt = :updatedAt");
+    expressionAttributeValues[":updatedAt"] = updates.updatedAt;
+  }
+
+  if (updateExpressions.length === 0) {
+    return; // Nothing to update
+  }
+
+  await docClient.send(
+    new UpdateCommand({
+      TableName: TABLE_NAME,
+      Key: {
+        PK: `BOARDTOOL#${boardId}`,
+        SK: "META",
+      },
+      UpdateExpression: `SET ${updateExpressions.join(", ")}`,
+      ExpressionAttributeNames: Object.keys(expressionAttributeNames).length > 0 ? expressionAttributeNames : undefined,
+      ExpressionAttributeValues: expressionAttributeValues,
+    })
+  );
+}
+
+export async function incrementBoardToolViews(boardId: string): Promise<void> {
+  try {
+    await docClient.send(
+      new UpdateCommand({
+        TableName: TABLE_NAME,
+        Key: {
+          PK: `BOARDTOOL#${boardId}`,
+          SK: "META",
+        },
+        UpdateExpression: "ADD stats.#views :inc",
+        ExpressionAttributeNames: {
+          "#views": "views",
+        },
+        ExpressionAttributeValues: {
+          ":inc": 1,
+        },
+      })
+    );
+  } catch (error) {
+    console.error("Error incrementing board views:", error);
+  }
+}
+
+export async function incrementBoardToolItems(boardId: string): Promise<void> {
+  try {
+    await docClient.send(
+      new UpdateCommand({
+        TableName: TABLE_NAME,
+        Key: {
+          PK: `BOARDTOOL#${boardId}`,
+          SK: "META",
+        },
+        UpdateExpression: "ADD stats.#items :inc",
+        ExpressionAttributeNames: {
+          "#items": "items",
+        },
+        ExpressionAttributeValues: {
+          ":inc": 1,
+        },
+      })
+    );
+  } catch (error) {
+    console.error("Error incrementing board items:", error);
+  }
+}
+
+export async function decrementBoardToolItems(boardId: string): Promise<void> {
+  try {
+    await docClient.send(
+      new UpdateCommand({
+        TableName: TABLE_NAME,
+        Key: {
+          PK: `BOARDTOOL#${boardId}`,
+          SK: "META",
+        },
+        UpdateExpression: "ADD stats.#items :dec",
+        ExpressionAttributeNames: {
+          "#items": "items",
+        },
+        ExpressionAttributeValues: {
+          ":dec": -1,
+        },
+      })
+    );
+  } catch (error) {
+    console.error("Error decrementing board items:", error);
+  }
+}
+
+// Board column operations
+
+export async function createBoardColumn(column: BoardColumn): Promise<void> {
+  await docClient.send(
+    new PutCommand({
+      TableName: TABLE_NAME,
+      Item: {
+        PK: `BOARDTOOL#${column.boardId}`,
+        SK: `COLUMN#${column.id}`,
+        ...column,
+      },
+    })
+  );
+}
+
+export async function getBoardColumns(boardId: string): Promise<BoardColumn[]> {
+  const result = await docClient.send(
+    new QueryCommand({
+      TableName: TABLE_NAME,
+      KeyConditionExpression: "PK = :pk AND begins_with(SK, :sk)",
+      ExpressionAttributeValues: {
+        ":pk": `BOARDTOOL#${boardId}`,
+        ":sk": "COLUMN#",
+      },
+    })
+  );
+
+  if (!result.Items) {
+    return [];
+  }
+
+  return result.Items.map((item) => {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { PK, SK, ...column } = item;
+    return column as BoardColumn;
+  });
+}
+
+// Board item operations
+
+export async function createBoardItem(item: BoardItem): Promise<void> {
+  await docClient.send(
+    new PutCommand({
+      TableName: TABLE_NAME,
+      Item: {
+        PK: `BOARDTOOL#${item.boardId}`,
+        SK: `ITEM#${item.id}`,
+        ...item,
+      },
+    })
+  );
+}
+
+export async function getBoardItems(boardId: string): Promise<BoardItem[]> {
+  const result = await docClient.send(
+    new QueryCommand({
+      TableName: TABLE_NAME,
+      KeyConditionExpression: "PK = :pk AND begins_with(SK, :sk)",
+      ExpressionAttributeValues: {
+        ":pk": `BOARDTOOL#${boardId}`,
+        ":sk": "ITEM#",
+      },
+    })
+  );
+
+  if (!result.Items) {
+    return [];
+  }
+
+  return result.Items.map((item) => {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { PK, SK, ...boardItem } = item;
+    return boardItem as BoardItem;
+  });
+}
+
+export async function updateBoardItem(
+  boardId: string,
+  itemId: string,
+  updates: Partial<BoardItem>
+): Promise<void> {
+  const updateExpressions: string[] = [];
+  const expressionAttributeNames: Record<string, string> = {};
+  const expressionAttributeValues: Record<string, any> = {};
+
+  if (updates.text !== undefined) {
+    updateExpressions.push("#text = :text");
+    expressionAttributeNames["#text"] = "text";
+    expressionAttributeValues[":text"] = updates.text;
+  }
+
+  if (updates.details !== undefined) {
+    updateExpressions.push("details = :details");
+    expressionAttributeValues[":details"] = updates.details;
+  }
+
+  if (updates.tag !== undefined) {
+    updateExpressions.push("tag = :tag");
+    expressionAttributeValues[":tag"] = updates.tag;
+  }
+
+  if (updates.updatedAt !== undefined) {
+    updateExpressions.push("updatedAt = :updatedAt");
+    expressionAttributeValues[":updatedAt"] = updates.updatedAt;
+  }
+
+  if (updateExpressions.length === 0) {
+    return;
+  }
+
+  await docClient.send(
+    new UpdateCommand({
+      TableName: TABLE_NAME,
+      Key: {
+        PK: `BOARDTOOL#${boardId}`,
+        SK: `ITEM#${itemId}`,
+      },
+      UpdateExpression: `SET ${updateExpressions.join(", ")}`,
+      ExpressionAttributeNames: Object.keys(expressionAttributeNames).length > 0 ? expressionAttributeNames : undefined,
+      ExpressionAttributeValues: expressionAttributeValues,
+    })
+  );
+}
+
+export async function deleteBoardItem(boardId: string, itemId: string): Promise<void> {
+  await docClient.send(
+    new DeleteCommand({
+      TableName: TABLE_NAME,
+      Key: {
+        PK: `BOARDTOOL#${boardId}`,
+        SK: `ITEM#${itemId}`,
+      },
+    })
+  );
+}
+
+// Board vote operations
+
+export async function createBoardVote(vote: BoardVote): Promise<void> {
+  const createdAtEpochMs = new Date(vote.createdAt).getTime();
+  const random = Math.random().toString(36).substring(2, 10);
+
+  await docClient.send(
+    new PutCommand({
+      TableName: TABLE_NAME,
+      Item: {
+        PK: `BOARDTOOL#${vote.boardId}`,
+        SK: `VOTE#${createdAtEpochMs}#${random}`,
+        ...vote,
+      },
+    })
+  );
+}
+
+export async function getBoardVotes(boardId: string): Promise<BoardVote[]> {
+  const result = await docClient.send(
+    new QueryCommand({
+      TableName: TABLE_NAME,
+      KeyConditionExpression: "PK = :pk AND begins_with(SK, :sk)",
+      ExpressionAttributeValues: {
+        ":pk": `BOARDTOOL#${boardId}`,
+        ":sk": "VOTE#",
+      },
+    })
+  );
+
+  if (!result.Items) {
+    return [];
+  }
+
+  return result.Items.map((item) => {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { PK, SK, ...vote } = item;
+    return vote as BoardVote;
+  });
+}
+
+export async function getBoardVotesByItem(boardId: string, itemId: string): Promise<BoardVote[]> {
+  const allVotes = await getBoardVotes(boardId);
+  return allVotes.filter((vote) => vote.itemId === itemId);
+}
+
+export async function getBoardVotesByParticipant(boardId: string, participantToken: string): Promise<BoardVote[]> {
+  const allVotes = await getBoardVotes(boardId);
+  return allVotes.filter((vote) => vote.participantToken === participantToken);
+}
+
+export async function deleteBoardVote(boardId: string, voteId: string): Promise<void> {
+  // Find the vote to get its SK
+  const votes = await getBoardVotes(boardId);
+  const vote = votes.find((v) => v.id === voteId);
+  
+  if (!vote) {
+    throw new Error("Vote not found");
+  }
+
+  // Query to find the exact SK
+  const result = await docClient.send(
+    new QueryCommand({
+      TableName: TABLE_NAME,
+      KeyConditionExpression: "PK = :pk AND begins_with(SK, :sk)",
+      ExpressionAttributeValues: {
+        ":pk": `BOARDTOOL#${boardId}`,
+        ":sk": "VOTE#",
+      },
+    })
+  );
+
+  if (result.Items) {
+    for (const item of result.Items) {
+      if ((item as BoardVote).id === voteId) {
+        await docClient.send(
+          new DeleteCommand({
+            TableName: TABLE_NAME,
+            Key: {
+              PK: `BOARDTOOL#${boardId}`,
+              SK: item.SK,
+            },
+          })
+        );
+        return;
+      }
+    }
+  }
+
+  throw new Error("Vote not found");
+}
+
+// Rate limiting for board tools
+export async function checkAndUpdateBoardToolRateLimit(
+  boardId: string,
+  type: "items" | "votes",
+  maxPerMinute: number
+): Promise<boolean> {
+  try {
+    const board = await getBoardTool(boardId);
+    if (!board) return true;
+
+    const now = Math.floor(Date.now() / 1000);
+    const rateLimitKey = type === "items" ? "items" : "votes";
+    const windowStart = board.rateLimit?.[rateLimitKey]?.windowStart || 0;
+    const count = board.rateLimit?.[rateLimitKey]?.count || 0;
+
+    if (now - windowStart > 60) {
+      // Reset window
+      const newRateLimit = { ...board.rateLimit };
+      newRateLimit[rateLimitKey] = { count: 1, windowStart: now };
+      await docClient.send(
+        new UpdateCommand({
+          TableName: TABLE_NAME,
+          Key: {
+            PK: `BOARDTOOL#${boardId}`,
+            SK: "META",
+          },
+          UpdateExpression: "SET rateLimit = :rl",
+          ExpressionAttributeValues: {
+            ":rl": newRateLimit,
+          },
+        })
+      );
+      return true;
+    }
+
+    if (count >= maxPerMinute) {
+      return false;
+    }
+
+    // Increment count
+    if (!board.rateLimit) {
+      const newRateLimit: any = {};
+      newRateLimit[rateLimitKey] = { count: count + 1, windowStart };
+      await docClient.send(
+        new UpdateCommand({
+          TableName: TABLE_NAME,
+          Key: {
+            PK: `BOARDTOOL#${boardId}`,
+            SK: "META",
+          },
+          UpdateExpression: "SET rateLimit = :rl",
+          ExpressionAttributeValues: {
+            ":rl": newRateLimit,
+          },
+        })
+      );
+    } else {
+      await docClient.send(
+        new UpdateCommand({
+          TableName: TABLE_NAME,
+          Key: {
+            PK: `BOARDTOOL#${boardId}`,
+            SK: "META",
+          },
+          UpdateExpression: `SET rateLimit.${rateLimitKey}.#count = :count`,
           ExpressionAttributeNames: {
             "#count": "count",
           },

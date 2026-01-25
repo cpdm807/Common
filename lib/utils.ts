@@ -7,6 +7,10 @@ import type {
   PollSettings,
   PollOption,
   PollVote,
+  BoardSettings,
+  BoardTemplate,
+  BoardItem,
+  BoardVote,
 } from "./types";
 
 // ID generation
@@ -520,4 +524,128 @@ export function generateSlug(): string {
     result += chars.charAt(Math.floor(Math.random() * chars.length));
   }
   return result;
+}
+
+// Board validation functions
+
+export function validateBoardSettings(settings: unknown): settings is BoardSettings {
+  if (!settings || typeof settings !== "object") return false;
+  const s = settings as Record<string, unknown>;
+
+  return (
+    (s.template === "agenda" || s.template === "retro") &&
+    typeof s.votingEnabled === "boolean" &&
+    (s.closeAt === undefined || typeof s.closeAt === "string")
+  );
+}
+
+export function validateBoardTitle(title: unknown): boolean {
+  if (typeof title !== "string") return false;
+  return title.trim().length > 0 && title.length <= 100;
+}
+
+export function validateBoardItemText(text: unknown): boolean {
+  if (typeof text !== "string") return false;
+  return text.trim().length > 0 && text.length <= 180;
+}
+
+export function validateBoardItemDetails(details: unknown): boolean {
+  if (details === undefined || details === null) return true;
+  if (typeof details !== "string") return false;
+  return details.length <= 1000;
+}
+
+export function validateBoardItemTag(tag: unknown): boolean {
+  if (tag === undefined || tag === null) return true;
+  return tag === "Topic" || tag === "Decision" || tag === "Question" || tag === "Blocker" || tag === "Kudos";
+}
+
+export function validateBoardDeadline(closeAt: string | undefined, createdAt: string): boolean {
+  if (!closeAt) return true; // No deadline is valid
+  
+  const closeDate = new Date(closeAt);
+  const createDate = new Date(createdAt);
+  const now = new Date();
+  
+  // Must be in the future
+  if (closeDate <= now) return false;
+  
+  // Must be within 7 days of creation
+  const maxCloseDate = new Date(createDate);
+  maxCloseDate.setDate(maxCloseDate.getDate() + 7);
+  
+  return closeDate <= maxCloseDate;
+}
+
+// Board computation functions
+
+export function computeBoardExpiresAt(createdAt: string, closeAt?: string, closedAt?: string): number {
+  const createDate = new Date(createdAt);
+  const now = Math.floor(Date.now() / 1000);
+
+  if (closedAt) {
+    // If manually closed, expire 7 days after closedAt
+    const closedDate = new Date(closedAt);
+    const expireDate = new Date(closedDate);
+    expireDate.setDate(expireDate.getDate() + 7);
+    return Math.floor(expireDate.getTime() / 1000);
+  }
+
+  if (closeAt) {
+    // If has closeAt deadline, expire 7 days after closeAt
+    const closeDate = new Date(closeAt);
+    const expireDate = new Date(closeDate);
+    expireDate.setDate(expireDate.getDate() + 7);
+    return Math.floor(expireDate.getTime() / 1000);
+  }
+
+  // Otherwise, expire 7 days after creation
+  const expireDate = new Date(createDate);
+  expireDate.setDate(expireDate.getDate() + 7);
+  return Math.floor(expireDate.getTime() / 1000);
+}
+
+export function isBoardClosed(board: { closedAt?: string; closeAt?: string }): boolean {
+  if (board.closedAt) {
+    return true; // Manually closed
+  }
+
+  if (board.closeAt) {
+    const closeDate = new Date(board.closeAt);
+    const now = new Date();
+    return now >= closeDate; // Deadline passed
+  }
+
+  return false;
+}
+
+export function aggregateBoardVotes(
+  items: BoardItem[],
+  votes: BoardVote[]
+): {
+  upvoteCounts: Map<string, number>;
+  downvoteCounts: Map<string, number>;
+  userVotes: Map<string, Map<string, "up" | "down">>; // participantToken -> itemId -> voteType
+} {
+  const upvoteCounts = new Map<string, number>();
+  const downvoteCounts = new Map<string, number>();
+  const userVotes = new Map<string, Map<string, "up" | "down">>();
+
+  for (const vote of votes) {
+    if (vote.voteType === "up") {
+      const current = upvoteCounts.get(vote.itemId) || 0;
+      upvoteCounts.set(vote.itemId, current + 1);
+    } else {
+      const current = downvoteCounts.get(vote.itemId) || 0;
+      downvoteCounts.set(vote.itemId, current + 1);
+    }
+
+    // Track user votes
+    if (!userVotes.has(vote.participantToken)) {
+      userVotes.set(vote.participantToken, new Map());
+    }
+    userVotes.get(vote.participantToken)!.set(vote.itemId, vote.voteType);
+  }
+
+  return { upvoteCounts, downvoteCounts, userVotes };
 }

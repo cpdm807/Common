@@ -1,6 +1,6 @@
 // Type definitions for Common
 
-export type ToolType = "availability" | "readiness" | "poll" | "opinions";
+export type ToolType = "availability" | "readiness" | "poll" | "board";
 
 export type BoardStatus = "open" | "closed";
 
@@ -156,6 +156,117 @@ export interface Feedback {
   comment?: string;
   expiresAtHard: number; // epoch seconds (TTL)
   clientTokenHash?: string;
+}
+
+// Board tool types
+export type BoardTemplate = "agenda" | "retro";
+export type BoardItemTag = "Topic" | "Decision" | "Question" | "Blocker" | "Kudos";
+
+export interface BoardSettings {
+  template: BoardTemplate;
+  votingEnabled: boolean;
+  closeAt?: string; // ISO string, optional deadline
+}
+
+export interface BoardColumn {
+  id: string;
+  boardId: string;
+  name: string;
+  order: number;
+  createdAt: string; // ISO string
+}
+
+export interface BoardItem {
+  id: string;
+  boardId: string;
+  columnId?: string; // Optional, only for Retro template
+  text: string; // required, max 180 chars
+  details?: string; // optional, max 1000 chars
+  tag?: BoardItemTag; // optional
+  createdAt: string; // ISO string
+  updatedAt: string; // ISO string
+  createdByToken: string; // client-side token for edit/delete permissions
+}
+
+export interface BoardVote {
+  id: string;
+  boardId: string;
+  itemId: string;
+  participantToken: string; // client-side token for vote uniqueness
+  voteType: "up" | "down"; // upvote or downvote
+  createdAt: string; // ISO string
+}
+
+export interface BoardTool {
+  boardId: string;
+  slug: string;
+  title: string; // required
+  template: BoardTemplate;
+  votingEnabled: boolean;
+  status: BoardStatus;
+  createdAt: string; // ISO string
+  updatedAt: string; // ISO string
+  editorTokenHash: string;
+  closedAt?: string; // ISO string, nullable
+  closeAt?: string; // ISO string, nullable deadline
+  expiresAt: number; // epoch seconds (TTL)
+  stats: {
+    views: number;
+    items: number;
+    votes: number;
+  };
+  rateLimit?: {
+    items?: {
+      count: number;
+      windowStart: number;
+    };
+    votes?: {
+      count: number;
+      windowStart: number;
+    };
+  };
+}
+
+export interface BoardPublicData {
+  boardId: string;
+  slug: string;
+  title: string;
+  template: BoardTemplate;
+  votingEnabled: boolean;
+  createdAt: string;
+  updatedAt: string;
+  closedAt?: string;
+  closeAt?: string;
+  expiresAt: number;
+  stats: {
+    views: number;
+    items: number;
+    votes: number;
+  };
+  computed: {
+    expired: boolean;
+    closed: boolean;
+    columns: Array<{
+      id: string;
+      name: string;
+      order: number;
+    }>;
+    items: Array<{
+      id: string;
+      columnId?: string;
+      text: string;
+      details?: string;
+      tag?: BoardItemTag;
+      createdAt: string;
+      updatedAt: string;
+      createdByToken: string;
+      upvoteCount: number;
+      downvoteCount: number;
+      userVote: "up" | "down" | null; // user's current vote, if any
+      userCanEdit: boolean;
+    }>;
+    totalVotes: number;
+  };
 }
 
 export interface BestWindow {

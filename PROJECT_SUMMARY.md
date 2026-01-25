@@ -10,7 +10,7 @@
 
 #### Core Features
 - **Availability Heatmap Tool** - "When can we meet?" (fully functional)
-- **Tool Selection Page** - With placeholders for future tools (Readiness, Blockers, Opinions)
+- **Tool Selection Page** - With placeholders for future tools (Readiness, Blockers)
 - **Landing Page** - Clean hero with messaging and CTAs
 - **Board Creation Flow** - Configurable timezone, date range, time slots
 - **Board View** - Heatmap visualization with best windows summary

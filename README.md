@@ -11,7 +11,7 @@ Common is a minimal web app that helps groups find common ground through simple,
 - **Privacy-first**: No emails, no tracking, no accounts
 - **Share via links**: Anyone with the link can view and contribute
 - **Calm and minimal**: No noise, no notifications, just simple tools
-- **Extensible**: Built to support future tools (readiness, blockers, opinions)
+- **Extensible**: Built to support future tools (readiness, blockers)
 
 ## Features
 
