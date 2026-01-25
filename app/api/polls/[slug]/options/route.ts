@@ -72,7 +72,7 @@ export async function POST(
       order: maxOrder + 1,
       isArchived: false,
       createdAt: new Date().toISOString(),
-      createdBy: isEditor ? "editor" : "participant",
+      createdBy: (isEditor ? "editor" : "participant") as "editor" | "participant",
     };
 
     await createPollOption(option);
