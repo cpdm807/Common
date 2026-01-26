@@ -31,15 +31,27 @@ export async function GET() {
 
     const items = result.Items || [];
 
-    // Separate items by type
-    const boards = items.filter((item) => item.SK === "META");
+    // Separate items by type based on PK prefix
+    const boards = items.filter(
+      (item) => item.PK?.startsWith("BOARD#") && item.SK === "META" && !item.PK.startsWith("BOARD#SLUG#")
+    );
+    const polls = items.filter(
+      (item) => item.PK?.startsWith("POLL#") && item.SK === "META" && !item.PK.startsWith("POLL#SLUG#")
+    );
+    const boardTools = items.filter(
+      (item) => item.PK?.startsWith("BOARDTOOL#") && item.SK === "META" && !item.PK.startsWith("BOARDTOOL#SLUG#")
+    );
     const contributions = items.filter((item) => item.SK?.startsWith("CONTRIB#"));
+    const pollVotes = items.filter((item) => item.SK?.startsWith("VOTE#"));
     const feedback = items.filter((item) => item.SK?.startsWith("FB#"));
 
-    // Calculate totals
-    const totalBoards = boards.length;
-    const totalContributions = contributions.length;
-    const totalViews = boards.reduce((sum, board) => sum + (board.stats?.views || 0), 0);
+    // Calculate totals - include all tools
+    const totalBoards = boards.length + polls.length + boardTools.length;
+    const totalContributions = contributions.length + pollVotes.length;
+    const totalViews = 
+      boards.reduce((sum, board) => sum + (board.stats?.views || 0), 0) +
+      polls.reduce((sum, poll) => sum + (poll.stats?.views || 0), 0) +
+      boardTools.reduce((sum, tool) => sum + (tool.stats?.views || 0), 0);
 
     // Count feedback by sentiment
     const positiveFeedback = feedback.filter((f) => f.sentiment === "up").length;
@@ -48,6 +60,7 @@ export async function GET() {
     // Per-tool metrics
     const toolMetrics: Record<string, any> = {};
     
+    // Process boards (availability, readiness)
     boards.forEach((board) => {
       const toolType = board.toolType || "unknown";
       
@@ -65,18 +78,76 @@ export async function GET() {
       toolMetrics[toolType].totalViews += board.stats?.views || 0;
     });
 
-    // Get recent boards (last 10)
-    const recentBoards = boards
-      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-      .slice(0, 10)
-      .map((board) => ({
+    // Process polls
+    polls.forEach((poll) => {
+      const toolType = "poll";
+      
+      if (!toolMetrics[toolType]) {
+        toolMetrics[toolType] = {
+          toolType,
+          boardsCreated: 0,
+          totalContributions: 0,
+          totalViews: 0,
+        };
+      }
+      
+      toolMetrics[toolType].boardsCreated++;
+      toolMetrics[toolType].totalContributions += poll.stats?.votes || 0;
+      toolMetrics[toolType].totalViews += poll.stats?.views || 0;
+    });
+
+    // Process board tools
+    boardTools.forEach((tool) => {
+      const toolType = "board";
+      
+      if (!toolMetrics[toolType]) {
+        toolMetrics[toolType] = {
+          toolType,
+          boardsCreated: 0,
+          totalContributions: 0,
+          totalViews: 0,
+        };
+      }
+      
+      toolMetrics[toolType].boardsCreated++;
+      toolMetrics[toolType].totalContributions += tool.stats?.items || 0;
+      toolMetrics[toolType].totalViews += tool.stats?.views || 0;
+    });
+
+    // Get recent boards (last 10) - include all tool types
+    const allTools = [
+      ...boards.map((board) => ({
         boardId: board.boardId,
+        slug: undefined,
         toolType: board.toolType,
         title: board.title,
         createdAt: board.createdAt,
         contributions: board.stats?.contributions || 0,
         views: board.stats?.views || 0,
-      }));
+      })),
+      ...polls.map((poll) => ({
+        boardId: poll.pollId,
+        slug: poll.slug,
+        toolType: "poll" as const,
+        title: poll.question,
+        createdAt: poll.createdAt,
+        contributions: poll.stats?.votes || 0,
+        views: poll.stats?.views || 0,
+      })),
+      ...boardTools.map((tool) => ({
+        boardId: tool.boardId,
+        slug: tool.slug,
+        toolType: "board" as const,
+        title: tool.title,
+        createdAt: tool.createdAt,
+        contributions: tool.stats?.items || 0,
+        views: tool.stats?.views || 0,
+      })),
+    ];
+
+    const recentBoards = allTools
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      .slice(0, 10);
 
     // Get recent feedback (last 20)
     const recentFeedback = feedback

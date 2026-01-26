@@ -19,6 +19,7 @@ interface MetricsData {
   }>;
   recentBoards: Array<{
     boardId: string;
+    slug?: string;
     toolType?: string;
     title?: string;
     createdAt: string;
@@ -172,7 +173,13 @@ export default function MetricsPage() {
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
                       <Link
-                        href={`/b/${board.boardId}`}
+                        href={
+                          board.toolType === "poll"
+                            ? `/polls/${board.slug}`
+                            : board.toolType === "board"
+                            ? `/board/${board.slug}`
+                            : `/b/${board.boardId}`
+                        }
                         className="font-medium hover:text-blue-600 dark:hover:text-blue-400"
                       >
                         {board.title || "Untitled Board"}
@@ -183,7 +190,13 @@ export default function MetricsPage() {
                       </div>
                     </div>
                     <div className="text-right text-sm">
-                      <div>{board.contributions} contributions</div>
+                      <div>
+                        {board.toolType === "poll"
+                          ? `${board.contributions} votes`
+                          : board.toolType === "board"
+                          ? `${board.contributions} items`
+                          : `${board.contributions} contributions`}
+                      </div>
                       <div className="text-gray-600 dark:text-gray-400">
                         {board.views} views
                       </div>
