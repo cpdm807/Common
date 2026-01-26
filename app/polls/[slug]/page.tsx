@@ -17,19 +17,38 @@ export async function generateMetadata({
 
     if (!poll) {
       const shareCopy = getBoardShareCopy("poll", undefined, true);
+      const ogImageUrl = `${baseUrl}/og/poll/${slug}`;
+
       return {
         title: shareCopy.title,
         description: shareCopy.description,
+        robots: {
+          index: false,
+          follow: false,
+          googleBot: {
+            index: false,
+            follow: false,
+          },
+        },
         openGraph: {
           title: shareCopy.title,
           description: shareCopy.description,
           url: canonicalUrl,
           type: "website",
+          images: [
+            {
+              url: ogImageUrl,
+              width: 1200,
+              height: 630,
+              alt: shareCopy.title,
+            },
+          ],
         },
         twitter: {
-          card: "summary",
+          card: "summary_large_image",
           title: shareCopy.title,
           description: shareCopy.description,
+          images: [ogImageUrl],
         },
         alternates: {
           canonical: canonicalUrl,
@@ -42,20 +61,38 @@ export async function generateMetadata({
 
     // Use getBoardShareCopy to get the correct action text format
     const shareCopy = getBoardShareCopy("poll", poll.question, expired);
+    const ogImageUrl = `${baseUrl}/og/poll/${slug}`;
 
     return {
       title: shareCopy.title,
       description: shareCopy.description,
+      robots: {
+        index: false,
+        follow: false,
+        googleBot: {
+          index: false,
+          follow: false,
+        },
+      },
       openGraph: {
         title: shareCopy.title,
         description: shareCopy.description,
         url: canonicalUrl,
         type: "website",
+        images: [
+          {
+            url: ogImageUrl,
+            width: 1200,
+            height: 630,
+            alt: shareCopy.title,
+          },
+        ],
       },
       twitter: {
-        card: "summary",
+        card: "summary_large_image",
         title: shareCopy.title,
         description: shareCopy.description,
+        images: [ogImageUrl],
       },
       alternates: {
         canonical: canonicalUrl,
@@ -64,19 +101,38 @@ export async function generateMetadata({
   } catch (error) {
     console.error("Error generating metadata:", error);
     const shareCopy = getBoardShareCopy("poll", undefined, true);
+    const ogImageUrl = `${baseUrl}/og/poll/${slug}`;
+
     return {
       title: shareCopy.title,
       description: shareCopy.description,
+      robots: {
+        index: false,
+        follow: false,
+        googleBot: {
+          index: false,
+          follow: false,
+        },
+      },
       openGraph: {
         title: shareCopy.title,
         description: shareCopy.description,
         url: canonicalUrl,
         type: "website",
+        images: [
+          {
+            url: ogImageUrl,
+            width: 1200,
+            height: 630,
+            alt: shareCopy.title,
+          },
+        ],
       },
       twitter: {
-        card: "summary",
+        card: "summary_large_image",
         title: shareCopy.title,
         description: shareCopy.description,
+        images: [ogImageUrl],
       },
       alternates: {
         canonical: canonicalUrl,

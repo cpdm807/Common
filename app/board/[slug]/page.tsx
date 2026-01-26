@@ -20,6 +20,14 @@ export async function generateMetadata({
       return {
         title: shareCopy.title,
         description: shareCopy.description,
+        robots: {
+          index: false,
+          follow: false,
+          googleBot: {
+            index: false,
+            follow: false,
+          },
+        },
         openGraph: {
           title: shareCopy.title,
           description: shareCopy.description,
@@ -46,6 +54,14 @@ export async function generateMetadata({
     return {
       title: shareCopy.title,
       description: shareCopy.description,
+      robots: {
+        index: false,
+        follow: false,
+        googleBot: {
+          index: false,
+          follow: false,
+        },
+      },
       openGraph: {
         title: shareCopy.title,
         description: shareCopy.description,
@@ -67,6 +83,14 @@ export async function generateMetadata({
     return {
       title: shareCopy.title,
       description: shareCopy.description,
+      robots: {
+        index: false,
+        follow: false,
+        googleBot: {
+          index: false,
+          follow: false,
+        },
+      },
       openGraph: {
         title: shareCopy.title,
         description: shareCopy.description,

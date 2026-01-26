@@ -1,7 +1,39 @@
 // Landing page with integrated tool selection
 
+import type { Metadata } from "next";
 import Link from "next/link";
 import { toolRegistry } from "@/lib/tools";
+
+const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://common.bz";
+
+export const metadata: Metadata = {
+  title: "Common – When things get messy, find what's common",
+  description: "Lightweight tools to help groups align without meetings, accounts, or noise. Create polls without accounts, find the best time to meet with an availability link, run team retros, and check readiness—all with simple shareable links.",
+  keywords: ["poll without account", "availability link", "team retro", "group decision", "no account voting", "schedule meeting", "team check-in", "group alignment"],
+  alternates: {
+    canonical: baseUrl,
+  },
+  openGraph: {
+    title: "Common – When things get messy, find what's common",
+    description: "Lightweight tools to help groups align without meetings, accounts, or noise. Create polls, find availability, run retros, and check team readiness—all without accounts.",
+    url: baseUrl,
+    type: "website",
+    images: [
+      {
+        url: `${baseUrl}/og.png`,
+        width: 1200,
+        height: 630,
+        alt: "Common – Lightweight tools for group alignment",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Common – When things get messy, find what's common",
+    description: "Lightweight tools to help groups align without meetings, accounts, or noise.",
+    images: [`${baseUrl}/og.png`],
+  },
+};
 
 interface Tool {
   id: string;
@@ -48,10 +80,36 @@ const tools: Tool[] = [
 ];
 
 export default function HomePage() {
+  const organizationSchema = {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    name: "Common",
+    url: baseUrl,
+    description: "Lightweight tools to help groups align without meetings, accounts, or noise.",
+    sameAs: [],
+  };
+
+  const websiteSchema = {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    name: "Common",
+    url: baseUrl,
+    description: "Lightweight tools to help groups align without meetings, accounts, or noise.",
+  };
+
   return (
-    <div className="min-h-screen flex flex-col">
-      {/* Main content */}
-      <main className="flex-1 px-4 py-12">
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationSchema) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteSchema) }}
+      />
+      <div className="min-h-screen flex flex-col">
+        {/* Main content */}
+        <main className="flex-1 px-4 py-12">
         <div className="max-w-4xl mx-auto">
           {/* Hero section */}
           <div className="text-center mb-8">
@@ -133,5 +191,6 @@ export default function HomePage() {
         </div>
       </footer>
     </div>
+    </>
   );
 }
