@@ -479,19 +479,19 @@ export default function PollPageClient() {
         )}
 
         {/* Share section */}
-        <div className="mb-8 p-6 border border-gray-200 dark:border-gray-800 rounded-lg bg-white dark:bg-gray-900">
-          <h2 className="text-lg font-semibold mb-4">Share poll</h2>
+        <div className="mb-8 p-6 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-800 rounded-lg">
+          <h2 className="font-semibold mb-3 text-gray-900 dark:text-gray-100">Share this poll</h2>
           <div className="space-y-3">
             <div className="flex gap-2">
               <input
                 type="text"
                 value={pollUrl}
                 readOnly
-                className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800 text-sm"
+                className="flex-1 px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded text-sm font-mono text-gray-900 dark:text-gray-100"
               />
               <button
                 onClick={() => handleCopy(pollUrl, false)}
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded font-medium transition-colors"
               >
                 {copied ? "Copied!" : "Copy link"}
               </button>
@@ -502,11 +502,11 @@ export default function PollPageClient() {
                   type="text"
                   value={editUrl}
                   readOnly
-                  className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800 text-sm"
+                  className="flex-1 px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded text-sm font-mono text-gray-900 dark:text-gray-100"
                 />
                 <button
                   onClick={() => handleCopy(editUrl, true)}
-                  className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition-colors"
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded font-medium transition-colors"
                 >
                   {copiedEdit ? "Copied!" : "Copy edit link"}
                 </button>

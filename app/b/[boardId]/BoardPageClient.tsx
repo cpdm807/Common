@@ -185,7 +185,7 @@ export default function BoardPageClient() {
             />
             <button
               onClick={() => handleCopy(boardUrl, false)}
-              className="px-4 py-2 bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 rounded font-medium transition-colors text-gray-900 dark:text-gray-100"
+              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded font-medium transition-colors"
             >
               {copied ? "Copied!" : "Copy link"}
             </button>

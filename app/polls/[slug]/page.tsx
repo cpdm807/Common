@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { getPollBySlug } from "@/lib/dynamodb";
-import { getBoardShareMeta } from "@/lib/tools";
+import { getBoardShareCopy } from "@/lib/tools";
 import PollPageClient from "./PollPageClient";
 
 export async function generateMetadata({
@@ -11,27 +11,25 @@ export async function generateMetadata({
   const { slug } = await params;
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://common.bz";
   const canonicalUrl = `${baseUrl}/polls/${slug}`;
-  const staticOgImageUrl = `${baseUrl}/og.png`;
 
   try {
     const poll = await getPollBySlug(slug);
 
     if (!poll) {
+      const shareCopy = getBoardShareCopy("poll", undefined, true);
       return {
-        title: "Common – Poll",
-        description: "This poll is unavailable.",
+        title: shareCopy.title,
+        description: shareCopy.description,
         openGraph: {
-          title: "Common – Poll",
-          description: "This poll is unavailable.",
+          title: shareCopy.title,
+          description: shareCopy.description,
           url: canonicalUrl,
           type: "website",
-          images: [{ url: staticOgImageUrl, width: 1200, height: 630 }],
         },
         twitter: {
-          card: "summary_large_image",
-          title: "Common – Poll",
-          description: "This poll is unavailable.",
-          images: [staticOgImageUrl],
+          card: "summary",
+          title: shareCopy.title,
+          description: shareCopy.description,
         },
         alternates: {
           canonical: canonicalUrl,
@@ -42,24 +40,22 @@ export async function generateMetadata({
     const now = Math.floor(Date.now() / 1000);
     const expired = now > poll.expiresAt;
 
-    const title = poll.question;
-    const description = poll.description || "Vote and see results.";
+    // Use getBoardShareCopy to get the correct action text format
+    const shareCopy = getBoardShareCopy("poll", poll.question, expired);
 
     return {
-      title: `Common – ${title}`,
-      description,
+      title: shareCopy.title,
+      description: shareCopy.description,
       openGraph: {
-        title,
-        description,
+        title: shareCopy.title,
+        description: shareCopy.description,
         url: canonicalUrl,
         type: "website",
-        images: [{ url: staticOgImageUrl, width: 1200, height: 630 }],
       },
       twitter: {
-        card: "summary_large_image",
-        title,
-        description,
-        images: [staticOgImageUrl],
+        card: "summary",
+        title: shareCopy.title,
+        description: shareCopy.description,
       },
       alternates: {
         canonical: canonicalUrl,
@@ -67,21 +63,20 @@ export async function generateMetadata({
     };
   } catch (error) {
     console.error("Error generating metadata:", error);
+    const shareCopy = getBoardShareCopy("poll", undefined, true);
     return {
-      title: "Common – Poll",
-      description: "This poll is unavailable.",
+      title: shareCopy.title,
+      description: shareCopy.description,
       openGraph: {
-        title: "Common – Poll",
-        description: "This poll is unavailable.",
+        title: shareCopy.title,
+        description: shareCopy.description,
         url: canonicalUrl,
         type: "website",
-        images: [{ url: staticOgImageUrl, width: 1200, height: 630 }],
       },
       twitter: {
-        card: "summary_large_image",
-        title: "Common – Poll",
-        description: "This poll is unavailable.",
-        images: [staticOgImageUrl],
+        card: "summary",
+        title: shareCopy.title,
+        description: shareCopy.description,
       },
       alternates: {
         canonical: canonicalUrl,

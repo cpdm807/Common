@@ -3,7 +3,7 @@
 import { Metadata } from "next";
 import Link from "next/link";
 import { getBoard } from "@/lib/dynamodb";
-import { getToolConfig } from "@/lib/tools";
+import { getToolConfig, getBoardShareCopy } from "@/lib/tools";
 
 export async function generateMetadata({
   params,
@@ -15,37 +15,31 @@ export async function generateMetadata({
 
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
   const boardUrl = `${baseUrl}/b/${boardId}`;
-  const ogImageUrl = `${baseUrl}/og.png`;
 
   const toolConfig = board
     ? getToolConfig(board.toolType)
     : getToolConfig("availability");
 
-  const title = toolConfig.metadataTitle(board?.title);
-  const description = toolConfig.metadataDescription(board?.title);
+  // Use getBoardShareCopy to get the correct action text format
+  const shareCopy = getBoardShareCopy(
+    board?.toolType || "availability",
+    board?.title,
+    false
+  );
 
   return {
-    title,
-    description,
+    title: shareCopy.title,
+    description: shareCopy.description,
     openGraph: {
-      title,
-      description,
+      title: shareCopy.title,
+      description: shareCopy.description,
       url: boardUrl,
       type: "website",
-      images: [
-        {
-          url: ogImageUrl,
-          width: 1200,
-          height: 630,
-          alt: "Common",
-        },
-      ],
     },
     twitter: {
-      card: "summary_large_image",
-      title,
-      description,
-      images: [ogImageUrl],
+      card: "summary",
+      title: shareCopy.title,
+      description: shareCopy.description,
     },
   };
 }

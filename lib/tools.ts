@@ -100,12 +100,12 @@ export function getBoardShareCopy(
   // Availability boards
   if (toolType === "availability") {
     const title = boardTitle
-      ? `Add your availability · ${boardTitle}`
-      : "Add your availability";
+      ? `Add Your Availability - ${boardTitle}`
+      : "Add Your Availability";
     return {
       title,
       description: "See when everyone is free. No accounts.",
-      heading: "Add your availability",
+      heading: "Add Your Availability",
       subheading: boardTitle ? truncateTitle(boardTitle, 60) : "", // Empty if no title
       trustLine: "No accounts. Just add your availability.",
     };
@@ -114,12 +114,12 @@ export function getBoardShareCopy(
   // Pulse (readiness) boards
   if (toolType === "readiness") {
     const title = boardTitle
-      ? `Share your pulse · ${boardTitle}`
-      : "Share your pulse";
+      ? `Add Your Pulse - ${boardTitle}`
+      : "Add Your Pulse";
     return {
       title,
       description: "Quick group check-in on a shared scale. No accounts.",
-      heading: "Share your pulse",
+      heading: "Add Your Pulse",
       subheading: boardTitle ? truncateTitle(boardTitle, 60) : "", // Empty if no title
       trustLine: "No accounts. Just share your pulse.",
     };
@@ -128,12 +128,12 @@ export function getBoardShareCopy(
   // Poll
   if (toolType === "poll") {
     const title = boardTitle
-      ? `Vote and see results · ${boardTitle}`
-      : "Vote and see results";
+      ? `Cast Your Vote - ${boardTitle}`
+      : "Cast Your Vote";
     return {
       title,
       description: "Vote and see results. No accounts.",
-      heading: "Vote and see results",
+      heading: "Cast Your Vote",
       subheading: boardTitle ? truncateTitle(boardTitle, 60) : "", // Empty if no title
       trustLine: "No accounts. Just vote.",
     };
@@ -142,12 +142,12 @@ export function getBoardShareCopy(
   // Board
   if (toolType === "board") {
     const title = boardTitle
-      ? `Add items and vote · ${boardTitle}`
-      : "Add items and vote";
+      ? `Add to Board - ${boardTitle}`
+      : "Add to Board";
     return {
       title,
       description: "Shared items with lightweight voting, for agendas and retros. No accounts.",
-      heading: "Add items and vote",
+      heading: "Add to Board",
       subheading: boardTitle ? truncateTitle(boardTitle, 60) : "", // Empty if no title
       trustLine: "No accounts. Just add items and vote.",
     };
