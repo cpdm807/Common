@@ -157,10 +157,13 @@ export default function SquaresPageClient() {
   };
 
   const handleRevealNumbers = async () => {
-    if (!data || !isEditor || !editToken || data.numbersRevealed) return;
+    if (!data || data.numbersRevealed) return;
 
     try {
-      const res = await fetch(`/api/squares/${slug}?edit=${editToken}`, {
+      const url = editToken
+        ? `/api/squares/${slug}?edit=${editToken}`
+        : `/api/squares/${slug}`;
+      const res = await fetch(url, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "revealNumbers" }),
@@ -350,7 +353,7 @@ export default function SquaresPageClient() {
 
         {/* Claim button and Show Numbers */}
         <div className="mb-4 flex gap-3 flex-wrap">
-          {!selectionMode && (
+          {!selectionMode && !isFull && (
             <button
               onClick={handleStartSelection}
               className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
@@ -452,15 +455,26 @@ export default function SquaresPageClient() {
 
         {/* Grid */}
         <div className="overflow-x-auto mb-8">
-          <div className="inline-block min-w-0">
-            <table className="border-collapse">
+          <div className="inline-block">
+            <table className="border-collapse table-fixed">
               <thead>
                 <tr>
-                  <th className="w-8 h-8 border border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-gray-800 text-center text-xs font-medium" />
+                  <th className="w-10 min-w-10 h-10 border border-gray-300 dark:border-gray-600 bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-center text-xs font-semibold px-1">
+                    {data.rowsTeam}
+                  </th>
+                  <th
+                    colSpan={10}
+                    className="h-10 border border-gray-300 dark:border-gray-600 bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-center text-xs font-semibold"
+                  >
+                    {data.colsTeam}
+                  </th>
+                </tr>
+                <tr>
+                  <th className="w-10 min-w-10 h-10 border border-gray-300 dark:border-gray-600 bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-center text-sm font-semibold" />
                   {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map((c) => (
                     <th
                       key={c}
-                      className="w-16 h-8 border border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-gray-800 text-center text-sm font-medium"
+                      className="w-16 min-w-16 h-10 border border-gray-300 dark:border-gray-600 bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-center text-sm font-semibold"
                     >
                       {data.numbersRevealed && colDigits[c] !== undefined
                         ? colDigits[c]
@@ -472,7 +486,7 @@ export default function SquaresPageClient() {
               <tbody>
                 {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map((r) => (
                   <tr key={r}>
-                    <td className="w-8 h-12 border border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-gray-800 text-center text-sm font-medium">
+                    <td className="w-10 min-w-10 h-12 border border-gray-300 dark:border-gray-600 bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-center text-sm font-semibold">
                       {data.numbersRevealed && rowDigits[r] !== undefined
                         ? rowDigits[r]
                         : "?"}
