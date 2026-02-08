@@ -4,19 +4,36 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 
 interface MetricsData {
-  totals: {
-    totalBoards: number;
-    totalContributions: number;
-    totalViews: number;
-    positiveFeedback: number;
-    negativeFeedback: number;
+  allTime: {
+    totals: {
+      totalBoards: number;
+      totalContributions: number;
+      totalViews: number;
+      positiveFeedback: number;
+      negativeFeedback: number;
+    };
+    byTool: Array<{
+      toolType: string;
+      boardsCreated: number;
+      totalContributions: number;
+      totalViews: number;
+    }>;
+  } | null;
+  current: {
+    totals: {
+      totalBoards: number;
+      totalContributions: number;
+      totalViews: number;
+      positiveFeedback: number;
+      negativeFeedback: number;
+    };
+    byTool: Array<{
+      toolType: string;
+      boardsCreated: number;
+      totalContributions: number;
+      totalViews: number;
+    }>;
   };
-  byTool: Array<{
-    toolType: string;
-    boardsCreated: number;
-    totalContributions: number;
-    totalViews: number;
-  }>;
   recentBoards: Array<{
     boardId: string;
     slug?: string;
@@ -91,40 +108,118 @@ export default function MetricsPage() {
           </Link>
         </div>
 
-        {/* Overview Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-12">
-          <StatCard
-            title="Total Boards"
-            value={metrics.totals.totalBoards}
-            icon="📊"
-          />
-          <StatCard
-            title="Total Contributions"
-            value={metrics.totals.totalContributions}
-            icon="✏️"
-          />
-          <StatCard
-            title="Total Views"
-            value={metrics.totals.totalViews}
-            icon="👀"
-          />
-          <StatCard
-            title="Positive Feedback"
-            value={metrics.totals.positiveFeedback}
-            icon="👍"
-          />
-          <StatCard
-            title="Negative Feedback"
-            value={metrics.totals.negativeFeedback}
-            icon="👎"
-          />
-        </div>
+        {/* All-Time Overview Stats */}
+        {metrics.allTime && (
+          <div className="mb-8">
+            <h2 className="text-2xl font-semibold mb-4">All-Time Metrics</h2>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+              Cumulative totals since launch (includes expired items)
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
+              <StatCard
+                title="Total Boards"
+                value={metrics.allTime.totals.totalBoards}
+                icon="📊"
+              />
+              <StatCard
+                title="Total Contributions"
+                value={metrics.allTime.totals.totalContributions}
+                icon="✏️"
+              />
+              <StatCard
+                title="Total Views"
+                value={metrics.allTime.totals.totalViews}
+                icon="👀"
+              />
+              <StatCard
+                title="Positive Feedback"
+                value={metrics.allTime.totals.positiveFeedback}
+                icon="👍"
+              />
+              <StatCard
+                title="Negative Feedback"
+                value={metrics.allTime.totals.negativeFeedback}
+                icon="👎"
+              />
+            </div>
 
-        {/* By Tool Metrics */}
-        <div className="mb-12">
-          <h2 className="text-xl font-semibold mb-4">Metrics by Tool</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {metrics.byTool.map((tool) => (
+            {/* All-Time By Tool Metrics */}
+            <div className="mb-12">
+              <h3 className="text-xl font-semibold mb-4">All-Time Metrics by Tool</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {metrics.allTime.byTool.map((tool) => (
+                  <div
+                    key={tool.toolType}
+                    className="p-6 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg"
+                  >
+                    <h4 className="font-semibold text-lg mb-3 capitalize">
+                      {tool.toolType}
+                    </h4>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-gray-600 dark:text-gray-400">Boards:</span>
+                        <span className="font-medium">{tool.boardsCreated}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600 dark:text-gray-400">Contributions:</span>
+                        <span className="font-medium">{tool.totalContributions}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600 dark:text-gray-400">Views:</span>
+                        <span className="font-medium">{tool.totalViews}</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              {metrics.allTime.byTool.length === 0 && (
+                <div className="p-6 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg text-center text-gray-600 dark:text-gray-400">
+                  No tool usage data yet
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Current Overview Stats */}
+        <div className="mb-8">
+          <h2 className="text-2xl font-semibold mb-4">Current Metrics</h2>
+          <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+            Active items only (excludes expired)
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
+            <StatCard
+              title="Total Boards"
+              value={metrics.current.totals.totalBoards}
+              icon="📊"
+            />
+            <StatCard
+              title="Total Contributions"
+              value={metrics.current.totals.totalContributions}
+              icon="✏️"
+            />
+            <StatCard
+              title="Total Views"
+              value={metrics.current.totals.totalViews}
+              icon="👀"
+            />
+            <StatCard
+              title="Positive Feedback"
+              value={metrics.current.totals.positiveFeedback}
+              icon="👍"
+            />
+            <StatCard
+              title="Negative Feedback"
+              value={metrics.current.totals.negativeFeedback}
+              icon="👎"
+            />
+          </div>
+
+          {/* Current By Tool Metrics */}
+          <div className="mb-12">
+            <h3 className="text-xl font-semibold mb-4">Current Metrics by Tool</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {metrics.current.byTool.map((tool) => (
               <div
                 key={tool.toolType}
                 className="p-6 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg"
@@ -147,13 +242,14 @@ export default function MetricsPage() {
                   </div>
                 </div>
               </div>
-            ))}
-          </div>
-          {metrics.byTool.length === 0 && (
-            <div className="p-6 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg text-center text-gray-600 dark:text-gray-400">
-              No tool usage data yet
+              ))}
             </div>
-          )}
+            {metrics.current.byTool.length === 0 && (
+              <div className="p-6 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg text-center text-gray-600 dark:text-gray-400">
+                No tool usage data yet
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Recent Boards */}

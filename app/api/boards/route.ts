@@ -1,7 +1,7 @@
 // POST /api/boards - Create a new board
 
 import { NextRequest, NextResponse } from "next/server";
-import { createBoard } from "@/lib/dynamodb";
+import { createBoard, incrementMetricsOnCreate } from "@/lib/dynamodb";
 import {
   generateId,
   validateAvailabilitySettings,
@@ -79,6 +79,11 @@ export async function POST(request: NextRequest) {
     };
 
     await createBoard(board);
+
+    // Increment metrics (best-effort, don't fail on error)
+    incrementMetricsOnCreate(board.toolType, 0).catch((err) => {
+      console.error("Error incrementing metrics:", err);
+    });
 
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
     const url = `${baseUrl}/b/${boardId}`;

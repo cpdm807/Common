@@ -3,6 +3,7 @@
 import { NextResponse } from "next/server";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { DynamoDBDocumentClient, ScanCommand } from "@aws-sdk/lib-dynamodb";
+import { getMetricsAggregation } from "@/lib/dynamodb";
 
 const clientConfig: any = {
   region: process.env.DYNAMODB_REGION || process.env.AWS_REGION || "us-east-1",
@@ -22,7 +23,10 @@ const TABLE_NAME = process.env.COMMON_TABLE_NAME || "Common";
 
 export async function GET() {
   try {
-    // Scan all items (note: in production, consider using secondary indexes or aggregation tables)
+    // Get all-time metrics from aggregation (never expires)
+    const allTimeMetrics = await getMetricsAggregation();
+
+    // Scan all items for current (non-expired) metrics
     const result = await docClient.send(
       new ScanCommand({
         TableName: TABLE_NAME,
@@ -162,18 +166,31 @@ export async function GET() {
         context: fb.context,
       }));
 
-    return NextResponse.json({
-      totals: {
-        totalBoards,
-        totalContributions,
-        totalViews,
-        positiveFeedback,
-        negativeFeedback,
+    // Combine all-time and current metrics
+    const response = {
+      // All-time totals (from aggregation, never expires)
+      allTime: allTimeMetrics
+        ? {
+            totals: allTimeMetrics.totals,
+            byTool: Object.values(allTimeMetrics.byTool),
+          }
+        : null,
+      // Current totals (from scan, only non-expired items)
+      current: {
+        totals: {
+          totalBoards,
+          totalContributions,
+          totalViews,
+          positiveFeedback,
+          negativeFeedback,
+        },
+        byTool: Object.values(toolMetrics),
       },
-      byTool: Object.values(toolMetrics),
       recentBoards,
       recentFeedback,
-    });
+    };
+
+    return NextResponse.json(response);
   } catch (error) {
     console.error("Error fetching metrics:", error);
     return NextResponse.json(

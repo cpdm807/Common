@@ -314,3 +314,21 @@ export interface BoardPublicData {
     }>;
   };
 }
+
+// Metrics aggregation types
+export interface MetricsAggregation {
+  totals: {
+    totalBoards: number;
+    totalContributions: number;
+    totalViews: number;
+    positiveFeedback: number;
+    negativeFeedback: number;
+  };
+  byTool: Record<string, {
+    toolType: string;
+    boardsCreated: number;
+    totalContributions: number;
+    totalViews: number;
+  }>;
+  lastUpdated: string; // ISO string
+}

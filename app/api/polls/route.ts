@@ -1,7 +1,7 @@
 // POST /api/polls - Create a new poll
 
 import { NextRequest, NextResponse } from "next/server";
-import { createPoll, createPollSlugMapping } from "@/lib/dynamodb";
+import { createPoll, createPollSlugMapping, incrementMetricsOnCreate } from "@/lib/dynamodb";
 import {
   generateId,
   generateSlug,
@@ -118,6 +118,11 @@ export async function POST(request: NextRequest) {
 
     await createPoll(poll);
     await createPollSlugMapping(slug, pollId, expiresAt);
+
+    // Increment metrics (best-effort, don't fail on error)
+    incrementMetricsOnCreate("poll", 0).catch((err) => {
+      console.error("Error incrementing metrics:", err);
+    });
 
     // Create initial options
     const { createPollOption } = await import("@/lib/dynamodb");

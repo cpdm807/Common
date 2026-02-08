@@ -9,7 +9,7 @@ import {
   UpdateCommand,
   DeleteCommand,
 } from "@aws-sdk/lib-dynamodb";
-import type { Board, Contribution, Feedback, Poll, PollOption, PollVote, BoardTool, BoardColumn, BoardItem, BoardVote } from "./types";
+import type { Board, Contribution, Feedback, Poll, PollOption, PollVote, BoardTool, BoardColumn, BoardItem, BoardVote, MetricsAggregation, ToolType } from "./types";
 
 // Configure DynamoDB client
 // For local development, set DYNAMODB_ENDPOINT to http://localhost:8000
@@ -1230,5 +1230,202 @@ export async function checkAndUpdateBoardToolRateLimit(
   } catch (error) {
     console.error("Rate limit check error:", error);
     return true;
+  }
+}
+
+// Metrics aggregation operations
+
+export async function getMetricsAggregation(): Promise<MetricsAggregation | null> {
+  try {
+    const result = await docClient.send(
+      new GetCommand({
+        TableName: TABLE_NAME,
+        Key: {
+          PK: "METRICS#AGGREGATE",
+          SK: "CURRENT",
+        },
+      })
+    );
+
+    if (!result.Item) {
+      return null;
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { PK, SK, ...metrics } = result.Item;
+    return metrics as MetricsAggregation;
+  } catch (error) {
+    console.error("Error getting metrics aggregation:", error);
+    return null;
+  }
+}
+
+export async function initializeMetricsAggregation(): Promise<void> {
+  const now = new Date().toISOString();
+  const initialMetrics: MetricsAggregation = {
+    totals: {
+      totalBoards: 0,
+      totalContributions: 0,
+      totalViews: 0,
+      positiveFeedback: 0,
+      negativeFeedback: 0,
+    },
+    byTool: {},
+    lastUpdated: now,
+  };
+
+  await docClient.send(
+    new PutCommand({
+      TableName: TABLE_NAME,
+      Item: {
+        PK: "METRICS#AGGREGATE",
+        SK: "CURRENT",
+        ...initialMetrics,
+      },
+    })
+  );
+}
+
+export async function incrementMetricsOnCreate(
+  toolType: ToolType,
+  views: number = 0
+): Promise<void> {
+  try {
+    let metrics = await getMetricsAggregation();
+    if (!metrics) {
+      await initializeMetricsAggregation();
+      metrics = await getMetricsAggregation();
+      if (!metrics) return;
+    }
+
+    metrics.totals.totalBoards += 1;
+    metrics.totals.totalViews += views;
+    metrics.lastUpdated = new Date().toISOString();
+
+    if (!metrics.byTool[toolType]) {
+      metrics.byTool[toolType] = {
+        toolType,
+        boardsCreated: 1,
+        totalContributions: 0,
+        totalViews: views,
+      };
+    } else {
+      metrics.byTool[toolType].boardsCreated += 1;
+      metrics.byTool[toolType].totalViews += views;
+    }
+
+    await docClient.send(
+      new PutCommand({
+        TableName: TABLE_NAME,
+        Item: {
+          PK: "METRICS#AGGREGATE",
+          SK: "CURRENT",
+          ...metrics,
+        },
+      })
+    );
+  } catch (error) {
+    console.error("Error incrementing metrics on create:", error);
+  }
+}
+
+export async function incrementMetricsContributions(
+  toolType: ToolType,
+  count: number = 1
+): Promise<void> {
+  try {
+    let metrics = await getMetricsAggregation();
+    if (!metrics) {
+      await initializeMetricsAggregation();
+      metrics = await getMetricsAggregation();
+      if (!metrics) return;
+    }
+
+    metrics.totals.totalContributions += count;
+    metrics.lastUpdated = new Date().toISOString();
+
+    if (metrics.byTool[toolType]) {
+      metrics.byTool[toolType].totalContributions += count;
+    }
+
+    await docClient.send(
+      new PutCommand({
+        TableName: TABLE_NAME,
+        Item: {
+          PK: "METRICS#AGGREGATE",
+          SK: "CURRENT",
+          ...metrics,
+        },
+      })
+    );
+  } catch (error) {
+    console.error("Error incrementing metrics contributions:", error);
+  }
+}
+
+export async function incrementMetricsViews(
+  toolType: ToolType,
+  count: number = 1
+): Promise<void> {
+  try {
+    let metrics = await getMetricsAggregation();
+    if (!metrics) {
+      await initializeMetricsAggregation();
+      metrics = await getMetricsAggregation();
+      if (!metrics) return;
+    }
+
+    metrics.totals.totalViews += count;
+    metrics.lastUpdated = new Date().toISOString();
+
+    if (metrics.byTool[toolType]) {
+      metrics.byTool[toolType].totalViews += count;
+    }
+
+    await docClient.send(
+      new PutCommand({
+        TableName: TABLE_NAME,
+        Item: {
+          PK: "METRICS#AGGREGATE",
+          SK: "CURRENT",
+          ...metrics,
+        },
+      })
+    );
+  } catch (error) {
+    console.error("Error incrementing metrics views:", error);
+  }
+}
+
+export async function incrementMetricsFeedback(
+  sentiment: "up" | "down"
+): Promise<void> {
+  try {
+    let metrics = await getMetricsAggregation();
+    if (!metrics) {
+      await initializeMetricsAggregation();
+      metrics = await getMetricsAggregation();
+      if (!metrics) return;
+    }
+
+    if (sentiment === "up") {
+      metrics.totals.positiveFeedback += 1;
+    } else {
+      metrics.totals.negativeFeedback += 1;
+    }
+    metrics.lastUpdated = new Date().toISOString();
+
+    await docClient.send(
+      new PutCommand({
+        TableName: TABLE_NAME,
+        Item: {
+          PK: "METRICS#AGGREGATE",
+          SK: "CURRENT",
+          ...metrics,
+        },
+      })
+    );
+  } catch (error) {
+    console.error("Error incrementing metrics feedback:", error);
   }
 }

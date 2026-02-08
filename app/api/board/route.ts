@@ -1,7 +1,7 @@
 // POST /api/board - Create a new board
 
 import { NextRequest, NextResponse } from "next/server";
-import { createBoardTool, createBoardToolSlugMapping, createBoardColumn } from "@/lib/dynamodb";
+import { createBoardTool, createBoardToolSlugMapping, createBoardColumn, incrementMetricsOnCreate } from "@/lib/dynamodb";
 import {
   generateId,
   generateSlug,
@@ -82,6 +82,11 @@ export async function POST(request: NextRequest) {
 
     await createBoardTool(board);
     await createBoardToolSlugMapping(slug, boardId, expiresAt);
+
+    // Increment metrics (best-effort, don't fail on error)
+    incrementMetricsOnCreate("board", 0).catch((err) => {
+      console.error("Error incrementing metrics:", err);
+    });
 
     // Create columns for Retro template
     if (defaultSettings.template === "retro") {
