@@ -14,7 +14,9 @@ export default function SquaresPageClient() {
   const params = useParams();
   const searchParams = useSearchParams();
   const slug = params?.slug as string;
-  const editToken = searchParams.get("edit");
+  const editTokenFromUrl = searchParams.get("edit");
+  const [editTokenFromStorage, setEditTokenFromStorage] = useState<string | null>(null);
+  const editToken = editTokenFromUrl || editTokenFromStorage;
 
   const [data, setData] = useState<SquaresToolPublicData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -56,10 +58,15 @@ export default function SquaresPageClient() {
   }, [fetchData]);
 
   useEffect(() => {
-    if (editToken && slug) {
-      localStorage.setItem(`squares_editor_${slug}`, editToken);
+    setEditTokenFromStorage(localStorage.getItem(`squares_editor_${slug}`));
+  }, [slug]);
+
+  useEffect(() => {
+    if (editTokenFromUrl && slug) {
+      localStorage.setItem(`squares_editor_${slug}`, editTokenFromUrl);
+      setEditTokenFromStorage(editTokenFromUrl);
     }
-  }, [editToken, slug]);
+  }, [editTokenFromUrl, slug]);
 
   const isEditor = editToken && data && (() => {
     const stored = localStorage.getItem(`squares_editor_${slug}`);
@@ -228,7 +235,7 @@ export default function SquaresPageClient() {
 
   const filledCount = data.computed.filledCount;
   const isFull = filledCount >= 100;
-  const canReveal = isEditor && isFull && !data.numbersRevealed;
+  const canReveal = !data.numbersRevealed && (isEditor || isFull);
 
   const rowDigits = data.rowDigits ?? [];
   const colDigits = data.colDigits ?? [];

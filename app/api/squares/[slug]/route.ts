@@ -157,16 +157,14 @@ export async function PATCH(
     }
 
     if (action === "revealNumbers") {
-      if (!isEditor) {
-        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-      }
       if (squares.numbersRevealed) {
         return NextResponse.json({ error: "Numbers already revealed" }, { status: 400 });
       }
 
       const currentSquares = squares.squares || Array(100).fill(null);
       const filledCount = currentSquares.filter((s): s is string => s != null && s !== "").length;
-      if (filledCount < 100) {
+      const isFull = filledCount >= 100;
+      if (!isEditor && !isFull) {
         return NextResponse.json(
           { error: "Board must be full (100/100) before revealing numbers" },
           { status: 400 }
