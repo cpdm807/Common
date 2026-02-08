@@ -493,6 +493,7 @@ export default function SquaresPageClient() {
                     </td>
                     {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map((c) => {
                       const idx = r * 10 + c;
+                      const squareNum = idx + 1;
                       const name = data.squares[idx];
                       const taken = name != null && name !== "";
                       const selected = selectedIndexes.has(idx);
@@ -503,7 +504,7 @@ export default function SquaresPageClient() {
                           key={c}
                           onClick={() => toggleSquare(idx)}
                           className={`
-                            w-16 h-12 border border-gray-300 dark:border-gray-600 text-center text-xs p-1
+                            w-16 h-12 border border-gray-300 dark:border-gray-600 text-center text-xs p-1 relative
                             ${selectionMode ? "cursor-pointer" : ""}
                             ${taken ? "bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200" : ""}
                             ${!taken && !selectionMode ? "bg-white dark:bg-gray-900" : ""}
@@ -512,8 +513,11 @@ export default function SquaresPageClient() {
                           `}
                           title={taken ? `Taken by ${name}` : isAvailable && selectionMode ? "Click to select" : ""}
                         >
+                          <span className="absolute top-0.5 left-0.5 text-[10px] text-gray-500 dark:text-gray-400">
+                            {squareNum}
+                          </span>
                           {taken ? (
-                            <div className="flex flex-col items-center gap-0.5">
+                            <div className="flex flex-col items-center gap-0.5 pt-2">
                               <span className="truncate max-w-full" title={name}>
                                 {truncateName(name, 8)}
                               </span>
@@ -531,8 +535,10 @@ export default function SquaresPageClient() {
                               )}
                             </div>
                           ) : selected ? (
-                            <span className="text-blue-600 dark:text-blue-400">✓</span>
-                          ) : null}
+                            <span className="inline-block pt-2 text-blue-600 dark:text-blue-400">✓</span>
+                          ) : (
+                            <span className="inline-block pt-2" />
+                          )}
                         </td>
                       );
                     })}
