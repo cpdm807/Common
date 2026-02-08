@@ -1,6 +1,6 @@
 // Type definitions for Common
 
-export type ToolType = "availability" | "readiness" | "poll" | "board";
+export type ToolType = "availability" | "readiness" | "poll" | "board" | "squares";
 
 export type BoardStatus = "open" | "closed";
 
@@ -312,6 +312,52 @@ export interface BoardPublicData {
       name?: string;
       readiness: number;
     }>;
+  };
+}
+
+// Football Squares types
+
+export interface SquaresTool {
+  squaresId: string;
+  slug: string;
+  title?: string;
+  squares: (string | null)[]; // 100 elements, row-major [0..9][0..9]
+  rulesText: string;
+  rowsTeam: string;
+  colsTeam: string;
+  numbersRevealed: boolean;
+  rowDigits: number[] | null; // length 10, permutation of 0..9
+  colDigits: number[] | null; // length 10, permutation of 0..9
+  createdAt: string; // ISO string
+  updatedAt: string; // ISO string
+  editorTokenHash: string;
+  expiresAt: number; // epoch seconds (TTL)
+  stats: {
+    views: number;
+  };
+}
+
+export interface SquaresToolPublicData {
+  squaresId: string;
+  slug: string;
+  title?: string;
+  squares: (string | null)[];
+  rulesText: string;
+  rowsTeam: string;
+  colsTeam: string;
+  numbersRevealed: boolean;
+  rowDigits: number[] | null;
+  colDigits: number[] | null;
+  createdAt: string;
+  updatedAt: string;
+  expiresAt: number;
+  stats: {
+    views: number;
+  };
+  computed: {
+    expired: boolean;
+    filledCount: number;
+    totalCount: number;
   };
 }
 

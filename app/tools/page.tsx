@@ -5,8 +5,8 @@ import { toolRegistry } from "@/lib/tools";
 const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://common.bz";
 
 export const metadata: Metadata = {
-  title: "Tools – Poll, Availability, Board, Pulse",
-  description: "Four lightweight tools to help groups align: create polls without accounts, find the best meeting time with availability links, run team retros with boards, and check team readiness with pulse checks. All free, no sign-up required.",
+  title: "Tools – Poll, Availability, Board, Pulse, Football Squares",
+  description: "Lightweight tools to help groups align: create polls, find meeting times, run retros, check team readiness, and run football squares contests. All free, no sign-up required.",
   keywords: ["poll tool", "availability tool", "board tool", "pulse tool", "team tools", "group alignment", "no account tools"],
   alternates: {
     canonical: `${baseUrl}/tools`,
@@ -70,6 +70,14 @@ const tools = [
     createHref: toolRegistry.readiness.createRoute,
     icon: toolRegistry.readiness.icon,
   },
+  {
+    id: "squares",
+    name: toolRegistry.squares.displayName,
+    description: toolRegistry.squares.description,
+    href: "/tools/squares",
+    createHref: toolRegistry.squares.createRoute,
+    icon: toolRegistry.squares.icon,
+  },
 ];
 
 const toolsSchema = {
@@ -110,7 +118,7 @@ export default function ToolsPage() {
               Tools
             </h1>
             <p className="text-xl text-gray-600 dark:text-gray-400">
-              Four lightweight tools to help groups align without meetings, accounts, or noise.
+              Lightweight tools to help groups align without meetings, accounts, or noise.
             </p>
           </div>
 

@@ -60,6 +60,18 @@ export const toolRegistry: Record<ToolType, ToolConfig> = {
         ? `${title}: Shared items with lightweight voting, for agendas and retros.`
         : "Shared items with lightweight voting, for agendas and retros.",
   },
+  squares: {
+    displayName: "Football Squares",
+    createRoute: "/tools/squares/create",
+    icon: "🏈",
+    description: "10x10 football squares contest. Claim squares, reveal numbers when full.",
+    metadataTitle: (title?: string) =>
+      title ? `Common – ${title}` : "Common – Football Squares",
+    metadataDescription: (title?: string) =>
+      title
+        ? `${title}: Claim your squares. Numbers revealed when board is full.`
+        : "10x10 football squares contest. Claim squares, reveal numbers when full.",
+  },
 };
 
 export function getToolConfig(toolType: ToolType): ToolConfig {
@@ -136,6 +148,20 @@ export function getBoardShareCopy(
       heading: "Cast Your Vote",
       subheading: boardTitle ? truncateTitle(boardTitle, 60) : "", // Empty if no title
       trustLine: "No accounts. Just vote.",
+    };
+  }
+
+  // Football Squares
+  if (toolType === "squares") {
+    const title = boardTitle
+      ? `Claim Your Square - ${boardTitle}`
+      : "Claim Your Square";
+    return {
+      title,
+      description: "10x10 football squares. Claim your squares. No accounts.",
+      heading: "Claim Your Square",
+      subheading: boardTitle ? truncateTitle(boardTitle, 60) : "",
+      trustLine: "No accounts. Just claim your squares.",
     };
   }
 

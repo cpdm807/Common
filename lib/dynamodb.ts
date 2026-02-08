@@ -9,7 +9,7 @@ import {
   UpdateCommand,
   DeleteCommand,
 } from "@aws-sdk/lib-dynamodb";
-import type { Board, Contribution, Feedback, Poll, PollOption, PollVote, BoardTool, BoardColumn, BoardItem, BoardVote, MetricsAggregation, ToolType } from "./types";
+import type { Board, Contribution, Feedback, Poll, PollOption, PollVote, BoardTool, BoardColumn, BoardItem, BoardVote, MetricsAggregation, ToolType, SquaresTool } from "./types";
 
 // Configure DynamoDB client
 // For local development, set DYNAMODB_ENDPOINT to http://localhost:8000
@@ -1149,6 +1149,178 @@ export async function deleteBoardVote(boardId: string, voteId: string): Promise<
   }
 
   throw new Error("Vote not found");
+}
+
+// Football Squares operations
+
+const DEFAULT_SQUARES: (string | null)[] = Array(100).fill(null);
+
+export async function createSquaresTool(squares: SquaresTool): Promise<void> {
+  await docClient.send(
+    new PutCommand({
+      TableName: TABLE_NAME,
+      Item: {
+        PK: `SQUARES#${squares.squaresId}`,
+        SK: "META",
+        ...squares,
+        TTL: squares.expiresAt,
+      },
+    })
+  );
+}
+
+export async function getSquaresTool(squaresId: string): Promise<SquaresTool | null> {
+  const result = await docClient.send(
+    new GetCommand({
+      TableName: TABLE_NAME,
+      Key: {
+        PK: `SQUARES#${squaresId}`,
+        SK: "META",
+      },
+    })
+  );
+
+  if (!result.Item) {
+    return null;
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { PK, SK, TTL, ...squares } = result.Item;
+  const item = squares as SquaresTool;
+  // Ensure squares array exists and has correct length
+  if (!item.squares || !Array.isArray(item.squares)) {
+    item.squares = [...DEFAULT_SQUARES];
+  }
+  while (item.squares.length < 100) {
+    item.squares.push(null);
+  }
+  item.squares = item.squares.slice(0, 100);
+  return item;
+}
+
+export async function getSquaresToolBySlug(slug: string): Promise<SquaresTool | null> {
+  const mappingResult = await docClient.send(
+    new GetCommand({
+      TableName: TABLE_NAME,
+      Key: {
+        PK: `SQUARES#SLUG#${slug}`,
+        SK: "META",
+      },
+    })
+  );
+
+  if (!mappingResult.Item || !mappingResult.Item.squaresId) {
+    return null;
+  }
+
+  const squaresId = mappingResult.Item.squaresId as string;
+  return getSquaresTool(squaresId);
+}
+
+export async function createSquaresToolSlugMapping(slug: string, squaresId: string, expiresAt: number): Promise<void> {
+  await docClient.send(
+    new PutCommand({
+      TableName: TABLE_NAME,
+      Item: {
+        PK: `SQUARES#SLUG#${slug}`,
+        SK: "META",
+        squaresId,
+        TTL: expiresAt,
+      },
+    })
+  );
+}
+
+export async function updateSquaresTool(squaresId: string, updates: Partial<SquaresTool>): Promise<void> {
+  const updateExpressions: string[] = [];
+  const expressionAttributeNames: Record<string, string> = {};
+  const expressionAttributeValues: Record<string, unknown> = {};
+
+  if (updates.squares !== undefined) {
+    updateExpressions.push("squares = :squares");
+    expressionAttributeValues[":squares"] = updates.squares;
+  }
+
+  if (updates.rulesText !== undefined) {
+    updateExpressions.push("rulesText = :rulesText");
+    expressionAttributeValues[":rulesText"] = updates.rulesText;
+  }
+
+  if (updates.rowsTeam !== undefined) {
+    updateExpressions.push("rowsTeam = :rowsTeam");
+    expressionAttributeValues[":rowsTeam"] = updates.rowsTeam;
+  }
+
+  if (updates.colsTeam !== undefined) {
+    updateExpressions.push("colsTeam = :colsTeam");
+    expressionAttributeValues[":colsTeam"] = updates.colsTeam;
+  }
+
+  if (updates.numbersRevealed !== undefined) {
+    updateExpressions.push("numbersRevealed = :numbersRevealed");
+    expressionAttributeValues[":numbersRevealed"] = updates.numbersRevealed;
+  }
+
+  if (updates.rowDigits !== undefined) {
+    updateExpressions.push("rowDigits = :rowDigits");
+    expressionAttributeValues[":rowDigits"] = updates.rowDigits;
+  }
+
+  if (updates.colDigits !== undefined) {
+    updateExpressions.push("colDigits = :colDigits");
+    expressionAttributeValues[":colDigits"] = updates.colDigits;
+  }
+
+  if (updates.title !== undefined) {
+    updateExpressions.push("#title = :title");
+    expressionAttributeNames["#title"] = "title";
+    expressionAttributeValues[":title"] = updates.title;
+  }
+
+  if (updates.updatedAt !== undefined) {
+    updateExpressions.push("updatedAt = :updatedAt");
+    expressionAttributeValues[":updatedAt"] = updates.updatedAt;
+  }
+
+  if (updateExpressions.length === 0) {
+    return;
+  }
+
+  await docClient.send(
+    new UpdateCommand({
+      TableName: TABLE_NAME,
+      Key: {
+        PK: `SQUARES#${squaresId}`,
+        SK: "META",
+      },
+      UpdateExpression: `SET ${updateExpressions.join(", ")}`,
+      ExpressionAttributeNames: Object.keys(expressionAttributeNames).length > 0 ? expressionAttributeNames : undefined,
+      ExpressionAttributeValues: expressionAttributeValues,
+    })
+  );
+}
+
+export async function incrementSquaresToolViews(squaresId: string): Promise<void> {
+  try {
+    await docClient.send(
+      new UpdateCommand({
+        TableName: TABLE_NAME,
+        Key: {
+          PK: `SQUARES#${squaresId}`,
+          SK: "META",
+        },
+        UpdateExpression: "ADD stats.#views :inc",
+        ExpressionAttributeNames: {
+          "#views": "views",
+        },
+        ExpressionAttributeValues: {
+          ":inc": 1,
+        },
+      })
+    );
+  } catch (error) {
+    console.error("Error incrementing squares views:", error);
+  }
 }
 
 // Rate limiting for board tools
