@@ -608,7 +608,7 @@ export function computeBoardExpiresAt(createdAt: string, closeAt?: string, close
 export function computeSquaresExpiresAt(createdAt: string): number {
   const createDate = new Date(createdAt);
   const expireDate = new Date(createDate);
-  expireDate.setDate(expireDate.getDate() + 30); // Squares boards expire after 30 days
+  expireDate.setDate(expireDate.getDate() + 90); // Squares boards expire after 90 days
   return Math.floor(expireDate.getTime() / 1000);
 }
 
