@@ -605,6 +605,13 @@ export function computeBoardExpiresAt(createdAt: string, closeAt?: string, close
   return Math.floor(expireDate.getTime() / 1000);
 }
 
+export function computeSquaresExpiresAt(createdAt: string): number {
+  const createDate = new Date(createdAt);
+  const expireDate = new Date(createDate);
+  expireDate.setDate(expireDate.getDate() + 30); // Squares boards expire after 30 days
+  return Math.floor(expireDate.getTime() / 1000);
+}
+
 export function isBoardClosed(board: { closedAt?: string; closeAt?: string }): boolean {
   if (board.closedAt) {
     return true; // Manually closed
@@ -617,6 +624,23 @@ export function isBoardClosed(board: { closedAt?: string; closeAt?: string }): b
   }
 
   return false;
+}
+
+// Football Squares validation
+export function validateSquaresTitle(title: unknown): boolean {
+  if (title === undefined || title === null) return true;
+  if (typeof title !== "string") return false;
+  return title.length <= 100;
+}
+
+// Fisher-Yates shuffle for row/col digits
+export function fisherYatesShuffle(arr: number[]): number[] {
+  const result = [...arr];
+  for (let i = result.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [result[i], result[j]] = [result[j], result[i]];
+  }
+  return result;
 }
 
 export function aggregateBoardVotes(

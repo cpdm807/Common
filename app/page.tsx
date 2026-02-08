@@ -77,6 +77,14 @@ const tools: Tool[] = [
     available: true,
     icon: toolRegistry.board.icon,
   },
+  {
+    id: "squares",
+    name: toolRegistry.squares.displayName,
+    description: toolRegistry.squares.description,
+    href: toolRegistry.squares.createRoute,
+    available: true,
+    icon: toolRegistry.squares.icon,
+  },
 ];
 
 export default function HomePage() {
